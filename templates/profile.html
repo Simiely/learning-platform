@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}统计{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <h2>你好，{{ user.username }}</h2>
+    <p class="page-desc">你的学习情况</p>
+
+    <div class="stats-big">
+        <div class="stat-tile">
+            <div class="st-num">{{ total_learned }}</div>
+            <div class="st-label">已认识卡片</div>
+        </div>
+        <div class="stat-tile">
+            <div class="st-num">{{ total_items }}</div>
+            <div class="st-label">全部卡片</div>
+        </div>
+        {% for s in stats %}
+        <div class="stat-tile">
+            <div class="st-num">{{ s.percent }}%</div>
+            <div class="st-label">{{ s.category.icon }} {{ s.category.name }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if recent_quizzes %}
+    <div class="top-list">
+        <div class="tl-title">最近测验记录</div>
+        {% for q in recent_quizzes|slice:":8" %}
+        <div class="tl-item">
+            <span class="tl-rank">{{ forloop.counter }}</span>
+            <span class="tl-name">{{ q.category.icon }} {{ q.category.name }} · {{ q.get_quiz_type_display }}</span>
+            <span class="tl-count">答对 {{ q.correct }}/{{ q.total }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}学习卡片{% endblock %}</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a href="{% url 'index' %}" class="nav-brand">学习卡片</a>
+            <div class="nav-links">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'profile' %}">统计</a>
+                    <span class="nav-user">{{ user.username }}</span>
+                    <a href="{% url 'logout' %}">退出</a>
+                {% else %}
+                    <a href="{% url 'login' %}">登录</a>
+                    <a href="{% url 'register' %}">注册</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message message-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}{{ category.name }}{% endblock %}
+
+{% block content %}
+<div class="mode-bar">
+    <span class="mode-badge">浏览模式</span>
+    <div class="mode-tabs">
+        <a href="{% url 'category_browse' category.slug %}" class="mode-tab active-mode">浏览</a>
+        <a href="{% url 'category_cards' category.slug %}" class="mode-tab">卡片</a>
+        <a href="{% url 'category_quiz' category.slug %}" class="mode-tab">练习</a>
+    </div>
+    <div class="mode-actions">
+        <button class="reset-btn" onclick="resetVisited('{{ category.slug }}')">再来一次</button>
+    </div>
+</div>
+
+<div class="browse-grid" id="browse-grid-{{ category.slug }}">
+    {% for item in items %}
+    <div class="b-tile" data-item-id="{{ item.id }}"
+         data-item-name="{{ item.name|escapejs }}"
+         data-item-en="{{ item.english_name|escapejs }}"
+         data-item-emoji="{{ item.emoji|escapejs }}"
+         data-item-fact="{{ item.fact|escapejs }}"
+         data-item-img="{% if item.image %}{{ item.image.url }}{% endif %}"
+         data-item-audio="{% if item.audio %}{{ item.audio.url }}{% endif %}"
+         style="background:{{ item.color }}"
+         onclick="openBrowsePopup(this)">
+        <div class="bt-emoji">{{ item.emoji|default:category.icon }}</div>
+        <div class="bt-name">{{ item.name }}</div>
+        {% if item.english_name %}
+        <div class="bt-en">{{ item.english_name }}</div>
+        {% endif %}
+        <div class="bt-flag" style="display:none">&#10003;</div>
+    </div>
+    {% empty %}
+    <p class="empty-hint" style="grid-column:1/-1;">暂无内容。</p>
+    {% endfor %}
+</div>
+
+{% include "browse_popup.html" %}
+
+<script>
+(function() {
+    var slug = '{{ category.slug }}';
+    var storageKey = 'lc-visited-' + slug;
+
+    // Load visited from localStorage
+    var visited = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
+
+    // Apply visited state to tiles
+    function applyVisited() {
+        document.querySelectorAll('#browse-grid-' + slug + ' .b-tile').forEach(function(t) {
+            var id = parseInt(t.getAttribute('data-item-id'));
+            if (visited.has(id)) {
+                t.classList.add('visited');
+                t.querySelector('.bt-flag').style.display = 'flex';
+            } else {
+                t.classList.remove('visited');
+                t.querySelector('.bt-flag').style.display = 'none';
+            }
+        });
+    }
+
+    function saveVisited() {
+        localStorage.setItem(storageKey, JSON.stringify([...visited]));
+    }
+
+    applyVisited();
+
+    // Reset function
+    window.resetVisited = function(s) {
+        if (s !== slug) return;
+        visited.clear();
+        localStorage.removeItem(storageKey);
+        applyVisited();
+        fetch('/api/reset-visited/' + s + '/', {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}}).catch(function(){});
+    };
+
+    // Popup
+    function markAndOpen(id) {
+        visited.add(id);
+        saveVisited();
+        applyVisited();
+        // AJAX load item detail
+        fetch('/api/item/' + id + '/')
+            .then(function(r) { return r.json(); })
+            .then(function(data) { showPopup(data); })
+            .catch(function() {
+                // Fallback: use data attributes from the tile
+                var tile = document.querySelector('#browse-grid-' + slug + ' .b-tile[data-item-id="' + id + '"]');
+                if (tile) {
+                    showPopup({
+                        id: id,
+                        name: tile.getAttribute('data-item-name'),
+                        english_name: tile.getAttribute('data-item-en'),
+                        emoji: tile.getAttribute('data-item-emoji'),
+                        fact: tile.getAttribute('data-item-fact'),
+                        image: tile.getAttribute('data-item-img'),
+                        audio_zh: tile.getAttribute('data-item-audio'),
+                    });
+                }
+            });
+    }
+
+    window.openBrowsePopup = function(tile) {
+        var id = parseInt(tile.getAttribute('data-item-id'));
+        {% if user.is_authenticated %}
+        markAndOpen(id);
+        {% else %}
+        window.location.href = '{% url 'login' %}';
+        {% endif %}
+    };
+})();
+</script>
+{% endblock %}

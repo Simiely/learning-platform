@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div class="ph-title">学习卡片</div>
+    <div class="ph-sub">每天进步一点点</div>
+</div>
+
+<div class="section-title">学习板块</div>
+
+<div class="board-grid">
+    {% for cat in categories %}
+    <a href="{% url 'category_cards' cat.slug %}" class="board-card">
+        <div class="bc-emoji">{{ cat.icon }}</div>
+        <div class="bc-title">{{ cat.name }}</div>
+        <div class="bc-en">{{ cat.description }}</div>
+        <div class="bc-tag">{{ cat.item_count }} 张</div>
+    </a>
+    {% empty %}
+    <div class="empty-hint" style="grid-column:1/-1;">暂无学习模块，请先在管理后台添加。</div>
+    {% endfor %}
+</div>
+{% endblock %}

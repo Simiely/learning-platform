@@ -1,0 +1,123 @@
+<!-- Browse popup overlay — shared by all browse pages -->
+<div class="popup-mask" id="browse-popup" style="display:none" onclick="closeBrowsePopup(event)">
+    <div class="popup-card">
+        <button class="popup-close" onclick="closeBrowsePopup()">&#10005;</button>
+        <div class="popup-img">
+            <span class="pi-emoji" id="popup-emoji">{{ category.icon }}</span>
+            <img id="popup-img-el" src="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">
+            <button class="popup-zoom" onclick="zoomBrowseImage()">&#10530;</button>
+        </div>
+        <div class="popup-texts" id="popup-texts">
+            <div class="ph-zhen">
+                <div class="ph-cell" onclick="playBrowseAudio('zh')">
+                    <span class="ph-zh" id="popup-zh"></span>
+                    <span class="ph-sound" id="popup-sound-zh">&#128266;</span>
+                </div>
+                <div class="ph-cell" onclick="playBrowseAudio('en')">
+                    <span class="ph-en" id="popup-en"></span>
+                    <span class="ph-sound muted" id="popup-sound-en">&#128266;</span>
+                </div>
+            </div>
+            <div class="ph-line" id="popup-fact-row" onclick="playBrowseAudio('fact')" style="display:none">
+                <span class="ph-fact" id="popup-fact"></span>
+                <span class="ph-sound muted" id="popup-sound-fact">&#128266;</span>
+            </div>
+        </div>
+        <audio id="popup-audio" preload="none" style="display:none"></audio>
+    </div>
+</div>
+
+<!-- Fullscreen zoom -->
+<div class="img-fs" id="img-fs-overlay" onclick="this.classList.remove('show')">
+    <button class="fs-close">&#10005;</button>
+    <span class="fs-emoji" id="fs-emoji-el">{{ category.icon }}</span>
+    <div class="fs-tip">点击任意处关闭</div>
+</div>
+
+<script>
+var popupData = null;
+
+function showPopup(data) {
+    popupData = data;
+    var p = document.getElementById('browse-popup');
+    document.getElementById('popup-zh').textContent = data.name || '';
+    document.getElementById('popup-en').textContent = data.english_name || '';
+    document.getElementById('popup-fact').textContent = data.fact || '';
+
+    // Image
+    var imgEl = document.getElementById('popup-img-el');
+    var emojiEl = document.getElementById('popup-emoji');
+    if (data.image) {
+        imgEl.src = data.image.startsWith('/') ? data.image : '/media/' + data.image;
+        imgEl.style.objectFit = 'contain';
+        imgEl.style.objectPosition = '';
+        imgEl.style.display = 'block';
+        emojiEl.style.display = 'none';
+        document.querySelector('.popup-img').style.backgroundColor = data.bg_color || '#eef3e4';
+    } else {
+        imgEl.style.display = 'none';
+        emojiEl.style.display = 'block';
+        emojiEl.textContent = data.emoji || '{{ category.icon }}';
+        document.querySelector('.popup-img').style.backgroundColor = '';
+    }
+
+    // Fact row
+    document.getElementById('popup-fact-row').style.display = data.fact ? 'flex' : 'none';
+
+    // Sound indicators
+    document.getElementById('popup-sound-zh').className = 'ph-sound' + (data.audio_zh ? '' : ' muted');
+    document.getElementById('popup-sound-en').className = 'ph-sound' + (data.audio_en ? '' : ' muted');
+    document.getElementById('popup-sound-fact').className = 'ph-sound' + (data.audio_fact ? '' : ' muted');
+
+    p.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Auto-play: Chinese first, then English after 1 second
+    setTimeout(function() { playBrowseAudio('zh'); }, 400);
+    setTimeout(function() { playBrowseAudio('en'); }, 1400);
+}
+
+function closeBrowsePopup(e) {
+    if (e && e.target !== document.getElementById('browse-popup')) return;
+    document.getElementById('browse-popup').style.display = 'none';
+    document.body.style.overflow = '';
+    var audio = document.getElementById('popup-audio');
+    audio.pause();
+    audio.removeAttribute('src');
+}
+
+function playBrowseAudio(type) {
+    var audio = document.getElementById('popup-audio');
+    if (!audio || !popupData) return;
+    var src = popupData['audio_' + type];
+    if (!src) return;
+    audio.src = src.startsWith('/') ? src : '/media/' + src;
+    audio.load();
+    audio.play().catch(function(e) {
+        console.log('Audio play error:', e);
+    });
+}
+
+function zoomBrowseImage() {
+    var fs = document.getElementById('img-fs-overlay');
+    var imgEl = document.getElementById('popup-img-el');
+    var emojiEl = document.getElementById('popup-emoji');
+    if (imgEl.style.display !== 'none') {
+        // Show image in fullscreen
+        document.getElementById('fs-emoji-el').style.display = 'none';
+        // Create img clone
+        var clone = fs.querySelector('img.fs-img-clone');
+        if (!clone) {
+            clone = document.createElement('img');
+            clone.className = 'fs-img-clone';
+            clone.style.cssText = 'max-width:90vw;max-height:90vh;object-fit:contain;';
+            fs.insertBefore(clone, fs.querySelector('.fs-tip'));
+        }
+        clone.src = imgEl.src;
+        clone.style.display = 'block';
+    } else {
+        document.getElementById('fs-emoji-el').style.display = 'block';
+    }
+    fs.classList.add('show');
+}
+</script>

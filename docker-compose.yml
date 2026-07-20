@@ -1,0 +1,18 @@
+services:
+  web:
+    build: .
+    container_name: learning-platform
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_DEBUG=False
+      - DJANGO_SECRET_KEY=change-this-to-a-random-secret-key-in-production
+      - DJANGO_ALLOWED_HOSTS=*
+    volumes:
+      - db_data:/app/db
+      - media_data:/app/media
+    restart: always
+
+volumes:
+  db_data:
+  media_data:
