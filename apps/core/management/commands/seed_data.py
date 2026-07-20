@@ -130,9 +130,6 @@ class Command(BaseCommand):
 
         categories_data = [
             ('动物', 'animals', '认识各种动物', 1, '🐾'),
-            ('数字', 'numbers', '学习数字 1-10', 2, '🔢'),
-            ('词语', 'words', '常用日常词语', 3, '📖'),
-            ('运动', 'sports', '认识体育运动', 4, '⚽'),
         ]
 
         cat_objs = {}
@@ -147,9 +144,6 @@ class Command(BaseCommand):
 
         items_data = [
             ('animals', ANIMALS, True),
-            ('numbers', NUMBERS, False),
-            ('words', WORDS, False),
-            ('sports', SPORTS, False),
         ]
 
         for slug, items, use_real_media in items_data:
