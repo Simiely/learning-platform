@@ -103,36 +103,77 @@ python manage.py runserver 0.0.0.0:8000   # 局域网内设备访问 http://<本
 
 一条命令即可拉起可用服务：**自动建库 → 下载素材 → 灌入示例数据 → 建默认账号 → 启动**。
 
+整套流程分两步：**先在「有 Docker 的机器」上构建并推送一次镜像**，之后**任何部署端只需 `docker compose up -d` 拉镜像即可**（和你在别处看到的简短 compose 一样）。代码进镜像、数据走卷，部署端不再需要放源码，也不需要在部署端执行构建。
+
+### 第一步：构建并推送镜像（一次性）
+
+在能连通 GitHub 且装了 Docker 的机器上执行仓库里的脚本：
+
 ```bash
-# 方式一（文件）：把仓库放到任意目录，进入后运行
+# 克隆仓库（内含 Dockerfile 与 scripts/build-push.sh）
 git clone https://github.com/Simiely/learning-platform.git my-app
 cd my-app
-docker compose up --build -d
 
-# 方式二（纯文本 / stdin，无需本地源码）：把下面这份 compose 内容通过 stdin 传给 compose
-#   要求 Docker Compose >= 2.23（支持 dockerfile_inline）；构建时会自动 git clone 仓库代码
-docker compose -f - up --build -d      # 然后粘贴 YAML，Ctrl-D 结束（或用 cat docker-compose.yml | ...）
-# 数据目录 /mnt/usb2/Configs/learning-platform/data 会由 Docker 自动创建
+# 首次需登录镜像仓库（二选一）
+#   ghcr.io : docker login ghcr.io -u Simiely -p "<GitHub PAT，需 write:packages 权限>"
+#   Docker Hub: docker login            （并把 scripts/build-push.sh 的 IMAGE 改成 simiely/learning-platform:latest）
+bash scripts/build-push.sh
 ```
 
-启动后访问 `http://localhost:2511`，用默认账号 `admin / admin1234` 登录。
+脚本会 `docker build` + `docker push` 到 `ghcr.io/simiely/learning-platform:latest`。
+
+> 想让"push 代码 = 自动出镜像"？见仓库 `.github/workflows/build.yml`（GitHub Actions，push 到 master 自动构建推送，免手动跑脚本）。
+
+### 第二步：部署端启动（任意机器）
+
+部署端**不需要源码、也不需要 `--build`**，compose 直接 `image:` 拉取已构建好的镜像，因此可以纯文本（stdin）运行，和你看到的其他项目的简短 compose 一致：
+
+```bash
+# 方式一：纯文本 / stdin 运行（无需本地源码），粘贴后 Ctrl-D 结束
+docker compose -f - up -d <<'EOF'
+services:
+  web:
+    image: ghcr.io/simiely/learning-platform:latest
+    container_name: learning-platform
+    ports:
+      - "2511:8000"
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=change-this-in-production
+      - DJANGO_ALLOWED_HOSTS=*
+      - MEDIA_SOURCE_URL=https://codeload.github.com/Simiely/learning-platform/tar.gz/refs/heads/master
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_SUPERUSER_EMAIL=admin@example.com
+      - DJANGO_SUPERUSER_PASSWORD=admin1234
+    volumes:
+      - /mnt/usb2/Configs/learning-platform/data/db:/app/db
+      - /mnt/usb2/Configs/learning-platform/data/media:/app/media
+    restart: unless-stopped
+EOF
+
+# 方式二：把上面这份 compose 存成 docker-compose.yml，再 docker compose up -d
+```
+
+启动后访问 `http://localhost:2511`，用默认账号 `admin / admin1234` 登录。数据目录 `/mnt/usb2/Configs/learning-platform/data` 由 Docker 自动创建并持久化。
 
 ### 工作原理
 
 | 环节 | 说明 |
 |------|------|
-| `docker-compose.yml` | 所有配置（代码路径、数据路径、管理员账号密码、DEBUG 等）已直接写死在文件内，**无需 `.env`** |
+| 镜像 | `scripts/build-push.sh`（或 GitHub Actions）在「有 Docker 的机器」上构建仓库镜像并推送到 `ghcr.io`；部署端 `docker compose up` 直接拉取，**不再需要本地源码或构建阶段** |
+| `docker-compose.yml` | 只有 `image:` + 配置（数据路径、管理员账号密码、DEBUG 等），**无需 `.env`、无需 `build:`**，因此可以纯文本（stdin）运行 |
 | `docker-entrypoint.sh` | 启动顺序：migrate → ensure_media →（首次）seed_data → 自动建管理员 → gunicorn |
 | `ensure_media` 命令 | 首次启动从 `MEDIA_SOURCE_URL`（默认本仓库 tarball）下载并解压 `media/` 到卷；已存在则跳过，重启不重复下载 |
-| 代码/数据位置 | 代码通过 `dockerfile_inline` 内联 Dockerfile，构建时 `git clone` 仓库（无需本地源码）；数据 `/mnt/usb2/Configs/learning-platform/data`（绑定挂载，Docker 自动创建并持久化 db 与 media） |
+| 数据位置 | `/mnt/usb2/Configs/learning-platform/data`（绑定挂载，Docker 自动创建并持久化 db 与 media）。代码在镜像内，数据在卷，互不影响；更新代码只需重新构建镜像，数据不丢 |
 
 ### 自定义
 
-- **代码位置**：compose 用 `dockerfile_inline` 把 Dockerfile 内联，构建阶段自动 `git clone` 本仓库代码，因此**不需要在本地放置源码**，纯文本（stdin）即可运行（需 Docker Compose >= 2.23）。
-- **数据位置**：compose 中 `volumes` 已写死为 `/mnt/usb2/Configs/learning-platform/data`（db 与 media）。代码与数据共享同一个父级目录 `/mnt/usb2/Configs/learning-platform/`，便于管理。重建镜像数据不丢；想彻底重置就删掉该目录。
-- **默认账号**：compose 中 `DJANGO_SUPERUSER_USERNAME/EMAIL/PASSWORD` 已写死为 `admin / admin1234`（仅首次启动生效；之后改密码用 `docker compose exec web python manage.py changepassword admin`）。
-- **素材来源**：compose 中 `MEDIA_SOURCE_URL` 可改成你自己的 COS / S3 直链（任意含顶层 `media/` 目录的 `tar.gz`）。
+- **更新代码**：改完代码后，重跑 `bash scripts/build-push.sh`（或 push 触发 GitHub Actions）重新推送镜像；部署端执行 `docker compose pull && docker compose up -d` 即更新，无需在部署端放源码。
+- **数据位置**：compose 中 `volumes` 写死为 `/mnt/usb2/Configs/learning-platform/data`（db 与 media），Docker 自动创建并持久化；想彻底重置就删掉该目录。
+- **默认账号**：`DJANGO_SUPERUSER_USERNAME/EMAIL/PASSWORD` 已写死为 `admin / admin1234`（仅首次启动生效）；之后改密码用 `docker compose exec web python manage.py changepassword admin`。
+- **素材来源**：`MEDIA_SOURCE_URL` 可改成你自己的 COS / S3 直链（任意含顶层 `media/` 目录的 `tar.gz`）。
 - **重新灌数据**：`docker compose exec web python manage.py seed_data`（注意会清空并重建条目）。
+- **换镜像仓库**：把 `docker-compose.yml` 与 `scripts/build-push.sh`（及 workflow 里的 `tags`）的镜像名一起改（ghcr.io ↔ Docker Hub）。
 - **生产环境**：将 `DJANGO_DEBUG` 设为 `False`，并另行用 Nginx/Whitenoise 托管媒体与静态文件。
 
 ## 使用方法
