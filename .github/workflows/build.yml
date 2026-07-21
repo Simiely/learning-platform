@@ -19,6 +19,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ghcr.io 要求镜像名全小写，而仓库名带大写(Simiely)，这里转小写
+      - name: Set lowercase image name
+        run: echo "IMAGE=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -31,5 +35,5 @@ jobs:
         with:
           context: .
           push: true
-          # 镜像名与 docker-compose.yml / scripts/build-push.sh 保持一致
-          tags: ghcr.io/${{ github.repository }}:latest
+          # 镜像名与 docker-compose.yml / scripts/build-push.sh 保持一致（全小写）
+          tags: ${{ env.IMAGE }}:latest
