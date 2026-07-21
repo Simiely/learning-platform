@@ -22,27 +22,82 @@
 | 图片处理 | Pillow, NumPy |
 | 拼音排序 | pypinyin |
 
-## 快速开始
+## 部署指南
+
+### 环境要求
+
+- **Python**：3.13.x（开发实测，其他 3.x 未验证）
+- **pip**：随 Python 自带
+- **操作系统**：Windows / macOS / Linux 均可（路径差异见下）
+- **网络**：首次 `pip install` 需联网拉取依赖
+
+> ⚠️ **依赖完整性**：`numpy` 与 `pypinyin` 是 `views.py` 实际 import 的包，**必须安装**，已写入 `requirements.txt`。若用旧版 `requirements.txt` 漏装，启动会直接 `ModuleNotFoundError`。
+
+### 方式一：本地 / 局域网部署（推荐首次运行）
 
 ```bash
-# 1. 虚拟环境与依赖（注意：numpy / pypinyin 必需，已写入 requirements.txt）
+# 1. 拉取代码
+git clone <repo-url> learning-platform
+cd learning-platform
+
+# 2. 创建并激活虚拟环境
 python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
+source venv/bin/activate          # macOS / Linux
+# venv\Scripts\activate           # Windows (PowerShell / CMD)
+
+# 3. 安装依赖
 pip install -r requirements.txt
 
-# 2. 初始化数据库并加载 21 个动物示例数据
+# 4. 初始化数据库（生成 db.sqlite3，此文件不进 git）
 python manage.py migrate
+
+# 5. 加载示例数据（21 个动物 + 图片 + 中/英/科普音频）
 python manage.py seed_data
 
-# 3. 启动开发服务器
-python manage.py runserver        # 访问 http://localhost:8000
+# 6.（可选）创建管理员
+python manage.py createsuperuser  # 访问 /admin/ 管理卡片内容
+
+# 7. 启动
+python manage.py runserver 0.0.0.0:8000   # 局域网内设备访问 http://<本机IP>:8000
 ```
 
-创建管理员账号（用于后台管理卡片内容）：
+**到这里就完成了**。浏览器打开 `http://localhost:8000` 即可使用，无需任何额外配置。
 
-```bash
-python manage.py createsuperuser  # 访问 http://localhost:8000/admin/
-```
+### 方式二：生产部署要点
+
+本项目开发用 SQLite + Django 自带服务器，若要对外正式部署，注意以下几点：
+
+| 项目 | 说明 |
+|------|------|
+| `DEBUG` | 必须设为 `False`（在 `config/settings.py`）。`DEBUG=True` 时 Django 会自动托管 `media/`，关闭后**媒体文件不会自动提供**，需另行配置。 |
+| `ALLOWED_HOSTS` | `DEBUG=False` 时必须填写你的域名 / IP，否则请求被拒。 |
+| 静态文件 | `python manage.py collectstatic` 收集到 `STATIC_ROOT`，由 Web 服务器（Nginx / Caddy）或 CDN 提供。 |
+| 媒体文件 | `media/` **不会被 `collectstatic` 收集**，需由 Web 服务器直接映射提供（如 Nginx `location /media/`）。 |
+| 应用服务器 | 可用 `gunicorn config.wsgi:application` 替代 `runserver`。 |
+| 简单场景 | 若仅家庭 / 局域网内 iPad 使用，保留 `DEBUG=True` + `runserver` 即可，最省心。 |
+
+### 部署检查清单（避免出错）
+
+- [ ] `python --version` 是 3.13.x
+- [ ] 已 `pip install -r requirements.txt` 且**无报错**（确认 numpy / pypinyin 已装）
+- [ ] 已执行 `python manage.py migrate`
+- [ ] 已执行 `python manage.py seed_data`（看到 "Created 21 items" 之类输出）
+- [ ] 若 `seed_data` 中途报错，**重跑即可**（已幂等，不会重复创建或产生随机后缀脏文件）
+- [ ] `media/` 目录存在 `images/`、`audio/`、`audio_en/`、`audio_fact/` 且文件名是纯英文名（如 `lion.jpg`、`lion.mp3`）
+- [ ] 启动后访问 `/media/audio/lion.mp3` 返回 200（验证音频可正常加载）
+
+### 常见部署错误速查
+
+| 现象 | 原因 | 解决 |
+|------|------|------|
+| `ModuleNotFoundError: No module named 'numpy'` | 依赖漏装 | `pip install -r requirements.txt` |
+| `seed_data` 报 `ValueError: ... bg_color` | 旧版 seed 给已删除字段赋值 | 用仓库最新 `seed_data.py`（已修复） |
+| 发声按钮 404 / 无声音 | DB 字段名与磁盘文件名不一致 | 重跑 `seed_data`（已确定性写入纯名）；详见 **DEV.md**「音频 404」 |
+| 页面样式全乱 / 不更新 | 浏览器缓存旧 CSS | 已用 `style.css?v=<日期>` 版本号，硬刷新（Ctrl/Cmd+Shift+R） |
+| 白底变全黑 | iPad「智能反转」开启 | 关闭 设置 → 辅助功能 → 显示与文字大小 → 智能反转 |
+| 管理后台 404 | 未 `createsuperuser` 或未 `migrate` | 先 `migrate` 再 `createsuperuser` |
+
+
 
 ## 使用方法
 
