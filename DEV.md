@@ -118,19 +118,13 @@ def _image_bg_color(image_path, darken=0.6):
 
 **方案**：settings.py 中不设代理相关配置，runserver 走 localhost 直连。curl 测试时加 `-k` 跳过 SSL 验证。
 
-## 10. 种子数据中的文件复制
+## 10. 种子数据中的文件写入（确定性，避免 404）
 
-**问题**：seed_data 命令从 `media/audio/` 等目录复制文件到 Django 的 MEDIA_ROOT。
+**问题**：seed_data 命令从 `media/audio/` 等目录复制文件到 Django 的 MEDIA_ROOT，并要求数据库字段名与磁盘文件名完全一致。
 
-**方案**：
+**根因 / 旧方案**：曾用 `item.audio.save(audio_file, ContentFile(f.read()))`。Django 的 `FileField.save` 在目标文件已存在时会追加随机 `_<suffix>`（见第 11 节），导致 DB 与磁盘不一致 → 404。
 
-```python
-from django.core.files.base import ContentFile
-with open(src, 'rb') as f:
-    item.image.save(img_file, ContentFile(f.read()))
-```
-
-`ContentFile` 直接把内存中的字节写入 FileField，避免了手动复制文件的复杂性。
+**新方案（`seed_data.py` 已落地）**：`seed_data` 改用 `_write_media_file(rel_path, bytes)` 直接以规范纯名覆盖写入（`rel_path` 统一为正斜杠），并在写入前清理同 stem 的随机后缀孤儿；同时在 `handle()` 开头调用 `_clean_orphan_suffixes()` 全局清扫历史孤儿。这样**随时重跑 seed_data 都安全**，且全新 clone + migrate + seed_data 必得一致文件名。
 
 ---
 
@@ -160,7 +154,15 @@ print(i.audio.name, '->', i.audio.url)   # DB 实际字段名 + 生成 URL
 1. 用 `os.path.join` 在 Windows 会产生反斜杠 `audio\lion.mp3` → 必须再 `.replace('\\','/')`，否则 `.url` 把 `\` 编成 `%5C` 又 404。
 2. 必须对所有 3 个字段（audio / audio_en / audio_fact）× 全部 Item 一起处理。
 
-**预防**：重新 `seed_data` 前先删除 `media/images`、`media/audio`、`media/audio_en`、`media/audio_fact` 目录；或始终走「全新 clone → migrate → seed_data」流程。
+**已在代码层修复（2026-07-21）**：`seed_data.py` 改用 `_write_media_file()` 直接以规范纯名覆盖写入并清理随机后缀孤儿（见第 10 节），不再走 `FileField.save`。因此现在**随时重跑 seed_data 都安全**，无需先清空 media，全新 clone + migrate + seed_data 必得一致文件名。上面的「修复」步骤仅用于清理本机历史已损坏的数据库（本机已修复，可忽略）。
+
+### 18. 全新部署 seed_data 崩溃：`bg_color` 字段已删除但仍被赋值
+
+**现象**：全新 clone → `migrate` → `seed_data` 报 `ValueError: The following fields ... do not exist ... bg_color`。
+
+**根因**：迁移 0007 / 0008 已移除 `Item.bg_color` 字段（前端也不再消费，属死代码），但 `seed_data` 仍在写 `item.bg_color = _image_bg_color(...)`。本地因数据库是从旧结构演化来的，不一定暴露；全新 clone 走最新迁移后字段不存在 → 崩溃。
+
+**修复（2026-07-21）**：从 `seed_data` 删除 `bg_color` 赋值及相关 import。现在全新部署可正常 `seed_data`。
 
 ### 12. iPad「白色变黑色」= 智能反转，不是 CSS bug（血泪教训）
 

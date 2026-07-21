@@ -1,7 +1,8 @@
+import glob
 import os
+import re
 import shutil
 from django.core.management.base import BaseCommand
-from django.core.files.base import ContentFile
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 
@@ -85,6 +86,49 @@ SPORTS = [
 MEDIA_DIR = None
 
 
+def _write_media_file(rel_path, content_bytes):
+    """Write bytes to MEDIA_ROOT/rel_path deterministically.
+
+    Django's FileField.save() appends a random `_<suffix>` when the target
+    name already exists on disk (e.g. re-running seed_data over the committed
+    media files). That desyncs the DB filename from the canonical file and
+    causes 404s. This helper overwrites the canonical plain name instead and
+    removes any leftover suffixed orphans, so the stored name always equals
+    rel_path and survives a fresh clone + migrate + seed_data anywhere.
+    """
+    from django.conf import settings
+    base_dir, fname = os.path.split(rel_path)
+    stem, dot, ext = fname.rpartition('.')
+    full_dir = os.path.join(settings.MEDIA_ROOT, base_dir)
+    os.makedirs(full_dir, exist_ok=True)
+    if stem and ext:
+        for old in glob.glob(os.path.join(full_dir, f'{stem}_*.{ext}')):
+            try:
+                os.remove(old)
+            except OSError:
+                pass
+    dest = os.path.join(full_dir, fname)
+    with open(dest, 'wb') as fh:
+        fh.write(content_bytes)
+    return rel_path.replace('\\', '/')
+
+
+def _clean_orphan_suffixes():
+    """Remove leftover `name_<random>.<ext>` files from a previous broken
+    seed run (Django's FileField.save used to append a random suffix)."""
+    from django.conf import settings
+    for sub in ('images', 'audio', 'audio_en', 'audio_fact'):
+        d = os.path.join(settings.MEDIA_ROOT, sub)
+        if not os.path.isdir(d):
+            continue
+        for f in os.listdir(d):
+            if re.search(r'_[A-Za-z0-9]{5,}\.', f):
+                try:
+                    os.remove(os.path.join(d, f))
+                except OSError:
+                    pass
+
+
 def _get_chinese_font(size):
     font_paths = [
         'C:/Windows/Fonts/simhei.ttf',
@@ -125,6 +169,8 @@ class Command(BaseCommand):
         from django.conf import settings
         MEDIA_DIR = settings.MEDIA_ROOT
 
+        _clean_orphan_suffixes()
+
         Item.objects.all().delete()
         Category.objects.all().delete()
 
@@ -159,29 +205,21 @@ class Command(BaseCommand):
                 )
 
                 if use_real_media:
-                    # Image
+                    # Image — write canonical plain name (no Django `_<suffix>`)
                     if img_file:
                         src = os.path.join(MEDIA_DIR, 'images', img_file)
                         if os.path.exists(src):
                             with open(src, 'rb') as f:
-                                item.image.save(img_file, ContentFile(f.read()))
-                            # Compute bg color from saved image
-                            from apps.core.views import _image_bg_color
-                            item.bg_color = _image_bg_color(item.image.path) or ''
-                    # Audio zh / en / fact
+                                item.image = _write_media_file(os.path.join('images', img_file), f.read())
+                            item.save(update_fields=['image'])
+                    # Audio zh / en / fact — same canonical-name treatment
                     if audio_file:
-                        src = os.path.join(MEDIA_DIR, 'audio', audio_file)
-                        if os.path.exists(src):
-                            with open(src, 'rb') as f:
-                                item.audio.save(audio_file, ContentFile(f.read()))
-                        src_en = os.path.join(MEDIA_DIR, 'audio_en', audio_file)
-                        if os.path.exists(src_en):
-                            with open(src_en, 'rb') as f:
-                                item.audio_en.save(audio_file, ContentFile(f.read()))
-                        src_fact = os.path.join(MEDIA_DIR, 'audio_fact', audio_file)
-                        if os.path.exists(src_fact):
-                            with open(src_fact, 'rb') as f:
-                                item.audio_fact.save(audio_file, ContentFile(f.read()))
+                        for sub, field in (('audio', 'audio'), ('audio_en', 'audio_en'), ('audio_fact', 'audio_fact')):
+                            src = os.path.join(MEDIA_DIR, sub, audio_file)
+                            if os.path.exists(src):
+                                with open(src, 'rb') as f:
+                                    setattr(item, field, _write_media_file(os.path.join(sub, audio_file), f.read()))
+                        item.save(update_fields=['audio', 'audio_en', 'audio_fact'])
                     # Auto-detect visual center if item has image and not yet checked
                     if item.image and not item.image_position_checked:
                         from apps.core.views import _detect_image_center
@@ -193,7 +231,8 @@ class Command(BaseCommand):
                 else:
                     bg, fg = COLORS.get(slug, ('#888', '#fff'))
                     placeholder = generate_placeholder_image(name, bg, fg)
-                    item.image.save(f'{slug}_{idx}.png', placeholder)
+                    item.image = _write_media_file(os.path.join('images', f'{slug}_{idx}.png'), placeholder.read())
+                    item.save(update_fields=['image'])
 
                 self.stdout.write(f'    {cat.name}: {name}')
 

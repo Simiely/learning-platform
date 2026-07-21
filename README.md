@@ -75,7 +75,7 @@ learning-platform/
 
 - 素材位于 `media/`（子目录 `images` / `audio` / `audio_en` / `audio_fact`），**已纳入 git 版本管理**。
 - 三种音频通过 `Item.audio / audio_en / audio_fact` 存储，前端用 `/media/` + 字段名拼接播放。
-- ⚠️ 数据库文件名与磁盘文件名必须一致，否则发声 404。重新 `seed_data` 前请先清空 `media` 各子目录，详见 **DEV.md**「音频 404：数据库文件名与磁盘不一致」。
+- `seed_data` 现已**幂等且确定性**：无论是否已有 media 文件，始终写入规范纯名（如 `audio/lion.mp3`）并清理历史随机后缀孤儿文件，保证数据库字段名与磁盘一致。全新 clone 后直接 `migrate` + `seed_data` 即可，无需先清空 `media`。详见 **DEV.md**「音频 404」一节了解原理。
 
 ## 开发笔记
 
