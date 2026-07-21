@@ -1,10 +1,28 @@
 services:
   web:
+    # 通过 dockerfile_inline 把 Dockerfile 直接内联进 compose 文本，
+    # 构建时由 Dockerfile 自行 git clone 仓库代码，因此无需本地存放源码，
+    # 适合用文本（stdin）直接 `docker compose -f - up` 运行。
+    # 要求 Docker Compose >= 2.23（支持 dockerfile_inline）。
     build:
-      # 程序代码位置（构建来源）：使用 docker-compose.yml 所在目录（.），
-      # 自动适配，无需固定绝对路径；把仓库放到任意目录运行即可。
       context: .
-      dockerfile: Dockerfile
+      dockerfile_inline: |
+        FROM python:3.12-slim
+        ENV PYTHONDONTWRITEBYTECODE=1
+        ENV PYTHONUNBUFFERED=1
+        ENV DJANGO_DEBUG=False
+        ENV DJANGO_ALLOWED_HOSTS=*
+        WORKDIR /app
+        RUN apt-get update && apt-get install -y --no-install-recommends \
+            libfreetype6 git \
+            && rm -rf /var/lib/apt/lists/*
+        RUN git clone --depth 1 https://github.com/Simiely/learning-platform.git /app
+        RUN pip install --no-cache-dir -r requirements.txt
+        RUN python manage.py collectstatic --noinput 2>/dev/null || true
+        RUN chmod +x /app/docker-entrypoint.sh
+        EXPOSE 8000
+        ENTRYPOINT ["/app/docker-entrypoint.sh"]
+    image: learning-platform-web:latest
     container_name: learning-platform
     ports:
       - "2511:8000"
@@ -20,7 +38,7 @@ services:
       - DJANGO_SUPERUSER_EMAIL=admin@example.com
       - DJANGO_SUPERUSER_PASSWORD=admin1234
     volumes:
-      # 数据位置（绑定挂载，持久化）：db + media
+      # 数据位置（绑定挂载，持久化）：db + media，首次运行由 Docker 自动创建
       - /mnt/usb2/Configs/learning-platform/data/db:/app/db
       - /mnt/usb2/Configs/learning-platform/data/media:/app/media
     restart: unless-stopped
