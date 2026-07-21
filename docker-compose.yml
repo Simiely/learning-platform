@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
     container_name: learning-platform
     ports:
-      - "8000:8000"
+      - "2511:8000"
     environment:
       # DEBUG=True 让 Django 自动托管 /media/ 与 /static/（家庭/局域网 iPad 用）
       - DJANGO_DEBUG=True

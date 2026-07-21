@@ -108,7 +108,7 @@ python manage.py runserver 0.0.0.0:8000   # 局域网内设备访问 http://<本
 docker compose up --build -d
 ```
 
-启动后访问 `http://localhost:8000`，用默认账号 `admin / admin1234` 登录。
+启动后访问 `http://localhost:2511`，用默认账号 `admin / admin1234` 登录。
 
 ### 工作原理
 

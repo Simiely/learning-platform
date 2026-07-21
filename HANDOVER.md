@@ -8,7 +8,7 @@
 | 分支 | master |
 | 技术栈 | Django 5.x + Alpine.js + SQLite/PostgreSQL |
 | Python | 3.13+ |
-| 本地地址 | http://localhost:8000 |
+| 本地地址 | http://localhost:2511 |
 
 ## 环境启动
 
