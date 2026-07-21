@@ -192,9 +192,10 @@ print(i.audio.name, '->', i.audio.url)   # DB 实际字段名 + 生成 URL
 
 **正确命令（绝对路径）**：
 ```bash
-"C:\Users\2504\.workbuddy\binaries\python\envs\learning-platform\Scripts\python.exe" manage.py runserver 0.0.0.0:8000
+"C:\Users\2504\Documents\260721\venv\Scripts\python.exe" manage.py runserver 0.0.0.0:8001
 ```
-- 启动前先杀掉占用 `:8000` 的旧进程。
+- 项目当前**唯一工作副本**为 `C:\Users\2504\Documents\260721`（旧的 `D:/workbuddy/2026-07-20-11-42-43/learning-platform` 已清空）。
+- 启动前先杀掉占用 `:8001` 的旧进程。
 - 服务器后台运行；改 CSS / 模板无需重启（Django 自动重载），改 Python 文件等自动重载或手动重启。
 - 代理环境：git / curl 走 `127.0.0.1:7890`；`curl` 测试本地用 `-k` 跳过 SSL。
 
@@ -216,3 +217,44 @@ print(i.audio.name, '->', i.audio.url)   # DB 实际字段名 + 生成 URL
 **现象**：进卡片时控制台 `NotAllowedError: play() failed because the user didn't interact with the document first.`
 
 **说明**：这是卡片进场时 `setTimeout(playCardAudio('zh'), 300)` 自动朗读，因处于 `setTimeout` 中、脱离用户手势上下文，被 iOS 自动播放策略拦截。`playCardAudio` 已有 `.catch` 静默处理，只影响进场自动读；**手动点击发声正常**（文件能加载）。iOS 无法绕过该限制，除非把朗读放进打开卡片的点击手势内。
+
+### 19. 全新 clone `migrate`/`seed_data` 报 `ModuleNotFoundError: No module named 'cv2'`
+
+**现象**：全新克隆 → `pip install -r requirements.txt` → `python manage.py migrate`（或 `seed_data`）报 `ModuleNotFoundError: No module named 'cv2'`。
+
+**根因**：`apps/core/views.py` 用 OpenCV 做图片焦点 / 显著图检测（`cv2.imread`、`cv2.cvtColor`、`cv2.saliency.StaticSaliencyFineGrained_create()`、`cv2.Canny`）。但 `requirements.txt` 此前漏写 opencv 依赖——本地旧 venv 是手动 `pip install` 装上的，所以一直没暴露；全新环境只装 requirements.txt 就缺包。
+
+**修复（2026-07-21，已推 `969ca6e`）**：`requirements.txt` 新增 `opencv-python-headless==5.0.0.93`。
+- 用 **headless** 版（无 Qt / GTK 等 GUI 依赖），更轻、服务器环境无需显示后端。
+- 锁版本 `5.0.0.93` 避免将来 ABI 漂移。
+
+**教训**：任何被业务代码 `import` 的第三方包，必须进 `requirements.txt`；本地手动装过的包是隐形炸弹，换机即爆。CI / 全新 clone 是检验依赖完整性的唯一可靠方式。
+
+### 20. 全新 clone `migrate` 报 `unable to open database file`（sqlite 父目录不存在）
+
+**现象**：全新克隆 → `python manage.py migrate` 报 `sqlite3.OperationalError: unable to open database file`。
+
+**根因**：`config/settings.py` 中 `DATABASES['default']['NAME'] = BASE_DIR / 'db' / 'db.sqlite3'`。`db/` 目录被 `.gitignore` 忽略、不会随仓库带来；而 Django 的 `migrate` 只负责建**文件**，不会自动建**父目录**。父目录不存在 → 写库失败。本地旧库是从更早的结构演化来的，`db/` 早已存在，所以一直没暴露。
+
+**修复（2026-07-21，已推 `969ca6e`）**：在 `settings.py` 定义 `DATABASES` 之后、迁移前，确保父目录存在：
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db' / 'db.sqlite3',
+    }
+}
+os.makedirs(os.path.dirname(str(DATABASES['default']['NAME'])), exist_ok=True)
+```
+`os.makedirs(..., exist_ok=True)` 幂等，重复调用安全。
+
+**教训**：凡 DB 路径指向一个**不在仓库内、需要本地生成**的目录，务必在 settings 里 `makedirs` 兜底，不要假设目录已存在。
+
+### 21. 工作副本已迁移到新文件夹（2026-07-21）
+
+**背景**：原工作副本 `D:/workbuddy/2026-07-20-11-42-43/learning-platform` 已清空；当前**唯一工作副本**为 `C:\Users\2504\Documents\260721`（从 GitHub 全新克隆，`master` 已含全部修复）。
+
+**约定**：
+- venv 在本文件夹内：`C:\Users\2504\Documents\260721\venv\Scripts\python.exe`（Python 3.13.12）。
+- 本机运行端口用 `:8001`（原 `:8000` 留给旧副本，现已弃用）。
+- 所有改动先在本文件夹 commit，再 `git push origin master`（远程 URL 已带 PAT，走 `127.0.0.1:7890` 代理）。
