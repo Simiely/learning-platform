@@ -1,18 +1,25 @@
 services:
   web:
-    build: .
+    build:
+      # 程序代码位置（构建来源）：仓库克隆到此目录
+      context: /mnt/usb2/Configs/learning-platform/app
+      dockerfile: Dockerfile
     container_name: learning-platform
     ports:
       - "8000:8000"
     environment:
-      - DJANGO_DEBUG=False
-      - DJANGO_SECRET_KEY=change-this-to-a-random-secret-key-in-production
+      # DEBUG=True 让 Django 自动托管 /media/ 与 /static/（家庭/局域网 iPad 用）
+      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=change-this-in-production
       - DJANGO_ALLOWED_HOSTS=*
+      # 媒体素材来源（含顶层 media/ 目录的 tar.gz）
+      - MEDIA_SOURCE_URL=https://codeload.github.com/Simiely/learning-platform/tar.gz/refs/heads/master
+      # 初始管理员账号（仅首次启动创建）
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_SUPERUSER_EMAIL=admin@example.com
+      - DJANGO_SUPERUSER_PASSWORD=admin1234
     volumes:
-      - db_data:/app/db
-      - media_data:/app/media
-    restart: always
-
-volumes:
-  db_data:
-  media_data:
+      # 数据位置（绑定挂载，持久化）：db + media
+      - /mnt/usb2/Configs/learning-platform/data/db:/app/db
+      - /mnt/usb2/Configs/learning-platform/data/media:/app/media
+    restart: unless-stopped

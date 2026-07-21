@@ -9,6 +9,8 @@ env/
 db.sqlite3
 *.db
 /staticfiles/
+# Host data directory created by docker compose (db + media)
+/data/
 *.css.map
 .DS_Store
 .idea/

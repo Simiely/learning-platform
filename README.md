@@ -99,6 +99,35 @@ python manage.py runserver 0.0.0.0:8000   # 局域网内设备访问 http://<本
 
 
 
+## Docker 一键部署（推荐）
+
+一条命令即可拉起可用服务：**自动建库 → 下载素材 → 灌入示例数据 → 建默认账号 → 启动**。
+
+```bash
+# 所有配置已直接写在 docker-compose.yml 中，无需 .env，直接构建并启动：
+docker compose up --build -d
+```
+
+启动后访问 `http://localhost:8000`，用默认账号 `admin / admin1234` 登录。
+
+### 工作原理
+
+| 环节 | 说明 |
+|------|------|
+| `docker-compose.yml` | 所有配置（代码路径、数据路径、管理员账号密码、DEBUG 等）已直接写死在文件内，**无需 `.env`** |
+| `docker-entrypoint.sh` | 启动顺序：migrate → ensure_media →（首次）seed_data → 自动建管理员 → gunicorn |
+| `ensure_media` 命令 | 首次启动从 `MEDIA_SOURCE_URL`（默认本仓库 tarball）下载并解压 `media/` 到卷；已存在则跳过，重启不重复下载 |
+| 代码/数据位置 | 代码 `/mnt/usb2/Configs/learning-platform/app`、数据 `/mnt/usb2/Configs/learning-platform/data`（绑定挂载持久化 db 与 media，重建镜像不丢） |
+
+### 自定义
+
+- **代码位置**：compose 中 `build.context` 已写死为 `/mnt/usb2/Configs/learning-platform/app`（父级目录下的 `app/` 子目录，仓库克隆到这里）。改完代码后 `docker compose up --build` 即生效。
+- **数据位置**：compose 中 `volumes` 已写死为 `/mnt/usb2/Configs/learning-platform/data`（db 与 media）。代码与数据共享同一个父级目录 `/mnt/usb2/Configs/learning-platform/`，便于管理。重建镜像数据不丢；想彻底重置就删掉该目录。
+- **默认账号**：compose 中 `DJANGO_SUPERUSER_USERNAME/EMAIL/PASSWORD` 已写死为 `admin / admin1234`（仅首次启动生效；之后改密码用 `docker compose exec web python manage.py changepassword admin`）。
+- **素材来源**：compose 中 `MEDIA_SOURCE_URL` 可改成你自己的 COS / S3 直链（任意含顶层 `media/` 目录的 `tar.gz`）。
+- **重新灌数据**：`docker compose exec web python manage.py seed_data`（注意会清空并重建条目）。
+- **生产环境**：将 `DJANGO_DEBUG` 设为 `False`，并另行用 Nginx/Whitenoise 托管媒体与静态文件。
+
 ## 使用方法
 
 1. 首页选择分类（当前为「动物」），进入三种学习模式：
