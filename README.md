@@ -31,7 +31,7 @@
 - **操作系统**：Windows / macOS / Linux 均可（路径差异见下）
 - **网络**：首次 `pip install` 需联网拉取依赖
 
-> ⚠️ **依赖完整性**：`numpy` 与 `pypinyin` 是 `views.py` 实际 import 的包，**必须安装**，已写入 `requirements.txt`。若用旧版 `requirements.txt` 漏装，启动会直接 `ModuleNotFoundError`。
+> ⚠️ **依赖完整性**：`numpy`、`pypinyin` 与 `opencv-python-headless` 都是 `views.py` 实际 import 的包（`cv2` 用于图片焦点检测），**必须安装**，已写入 `requirements.txt`。若用旧版 `requirements.txt` 漏装，启动会直接 `ModuleNotFoundError`。
 
 ### 方式一：本地 / 局域网部署（推荐首次运行）
 
@@ -79,7 +79,7 @@ python manage.py runserver 0.0.0.0:8000   # 局域网内设备访问 http://<本
 ### 部署检查清单（避免出错）
 
 - [ ] `python --version` 是 3.13.x
-- [ ] 已 `pip install -r requirements.txt` 且**无报错**（确认 numpy / pypinyin 已装）
+- [ ] 已 `pip install -r requirements.txt` 且**无报错**（确认 numpy / pypinyin / opencv-python-headless 已装）
 - [ ] 已执行 `python manage.py migrate`
 - [ ] 已执行 `python manage.py seed_data`（看到 "Created 21 items" 之类输出）
 - [ ] 若 `seed_data` 中途报错，**重跑即可**（已幂等，不会重复创建或产生随机后缀脏文件）
@@ -90,7 +90,7 @@ python manage.py runserver 0.0.0.0:8000   # 局域网内设备访问 http://<本
 
 | 现象 | 原因 | 解决 |
 |------|------|------|
-| `ModuleNotFoundError: No module named 'numpy'` | 依赖漏装 | `pip install -r requirements.txt` |
+| `ModuleNotFoundError: No module named 'numpy' / 'cv2' / 'pypinyin'` | 依赖漏装 | `pip install -r requirements.txt`（已含全部必需依赖） |
 | `seed_data` 报 `ValueError: ... bg_color` | 旧版 seed 给已删除字段赋值 | 用仓库最新 `seed_data.py`（已修复） |
 | 发声按钮 404 / 无声音 | DB 字段名与磁盘文件名不一致 | 重跑 `seed_data`（已确定性写入纯名）；详见 **DEV.md**「音频 404」 |
 | 页面样式全乱 / 不更新 | 浏览器缓存旧 CSS | 已用 `style.css?v=<日期>` 版本号，硬刷新（Ctrl/Cmd+Shift+R） |

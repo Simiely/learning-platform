@@ -3,3 +3,4 @@ Pillow==11.1.0
 gunicorn==23.0.0
 numpy==2.2.5
 pypinyin==0.53.0
+opencv-python-headless==5.0.0.93

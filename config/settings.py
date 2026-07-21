@@ -60,6 +60,8 @@ DATABASES = {
         'NAME': BASE_DIR / 'db' / 'db.sqlite3',
     }
 }
+# Ensure the DB parent directory exists (fresh clones have no db/ yet)
+os.makedirs(os.path.dirname(str(DATABASES['default']['NAME'])), exist_ok=True)
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
