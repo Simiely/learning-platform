@@ -104,13 +104,15 @@ python manage.py runserver 0.0.0.0:8000   # 局域网内设备访问 http://<本
 一条命令即可拉起可用服务：**自动建库 → 下载素材 → 灌入示例数据 → 建默认账号 → 启动**。
 
 ```bash
-# 1. 把仓库放到任意目录（git clone 或复制文件夹），进入该目录
+# 方式一（文件）：把仓库放到任意目录，进入后运行
 git clone https://github.com/Simiely/learning-platform.git my-app
 cd my-app
-
-# 2. 所有配置已直接写在 docker-compose.yml 中，无需 .env，直接构建并启动：
-#    （数据目录 /mnt/usb2/Configs/learning-platform/data 会由 Docker 自动创建）
 docker compose up --build -d
+
+# 方式二（纯文本 / stdin，无需本地源码）：把下面这份 compose 内容通过 stdin 传给 compose
+#   要求 Docker Compose >= 2.23（支持 dockerfile_inline）；构建时会自动 git clone 仓库代码
+docker compose -f - up --build -d      # 然后粘贴 YAML，Ctrl-D 结束（或用 cat docker-compose.yml | ...）
+# 数据目录 /mnt/usb2/Configs/learning-platform/data 会由 Docker 自动创建
 ```
 
 启动后访问 `http://localhost:2511`，用默认账号 `admin / admin1234` 登录。
@@ -122,11 +124,11 @@ docker compose up --build -d
 | `docker-compose.yml` | 所有配置（代码路径、数据路径、管理员账号密码、DEBUG 等）已直接写死在文件内，**无需 `.env`** |
 | `docker-entrypoint.sh` | 启动顺序：migrate → ensure_media →（首次）seed_data → 自动建管理员 → gunicorn |
 | `ensure_media` 命令 | 首次启动从 `MEDIA_SOURCE_URL`（默认本仓库 tarball）下载并解压 `media/` 到卷；已存在则跳过，重启不重复下载 |
-| 代码/数据位置 | 代码用 `build.context: .`（仓库当前目录，自动适配，无需预建目录）；数据 `/mnt/usb2/Configs/learning-platform/data`（绑定挂载，Docker 自动创建并持久化 db 与 media） |
+| 代码/数据位置 | 代码通过 `dockerfile_inline` 内联 Dockerfile，构建时 `git clone` 仓库（无需本地源码）；数据 `/mnt/usb2/Configs/learning-platform/data`（绑定挂载，Docker 自动创建并持久化 db 与 media） |
 
 ### 自定义
 
-- **代码位置**：compose 中 `build.context` 使用 `.`（即 docker-compose.yml 所在目录，自动适配，无需固定绝对路径，也不用预建目录）。把仓库放到任意目录、在该目录运行 `docker compose up --build` 即可。
+- **代码位置**：compose 用 `dockerfile_inline` 把 Dockerfile 内联，构建阶段自动 `git clone` 本仓库代码，因此**不需要在本地放置源码**，纯文本（stdin）即可运行（需 Docker Compose >= 2.23）。
 - **数据位置**：compose 中 `volumes` 已写死为 `/mnt/usb2/Configs/learning-platform/data`（db 与 media）。代码与数据共享同一个父级目录 `/mnt/usb2/Configs/learning-platform/`，便于管理。重建镜像数据不丢；想彻底重置就删掉该目录。
 - **默认账号**：compose 中 `DJANGO_SUPERUSER_USERNAME/EMAIL/PASSWORD` 已写死为 `admin / admin1234`（仅首次启动生效；之后改密码用 `docker compose exec web python manage.py changepassword admin`）。
 - **素材来源**：compose 中 `MEDIA_SOURCE_URL` 可改成你自己的 COS / S3 直链（任意含顶层 `media/` 目录的 `tar.gz`）。
