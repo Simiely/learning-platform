@@ -6,7 +6,8 @@
 :root {
     --bg: #f5f0e8;
     --card: #ffffff;
-    --primary: #4a7c59;
+    --primary: #FF9292;
+    --on-primary: #6e2a2a;
     --accent: #e8a87c;
     --text: #3c3c3c;
     --muted: #888888;
@@ -14,8 +15,10 @@
     --tag-bg: #eef2e6;
     --radius: 20px;
     --radius-sm: 14px;
-    --shadow: 0 8px 30px rgba(74,124,89,.12);
+    --shadow: 0 8px 30px rgba(255,146,146,.16);
     --shadow-sm: 0 4px 16px rgba(60,60,60,.08);
+    --sound-bg: #faf8f3;          /* sound rows — light surface in light mode */
+    --sound-bg-active: #f1ede4;
     --font: 'PingFang SC','Microsoft YaHei','Noto Sans SC',-apple-system,sans-serif;
 }
 
@@ -29,6 +32,24 @@ body {
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     font-size: 15px;
+    transition: background .3s ease, color .3s ease;
+}
+
+/* ---- Dark mode tokens ---- */
+:root[data-theme="dark"] {
+    --bg: #1a1d1a;
+    --card: #242824;
+    --primary: #FF9292;
+    --on-primary: #6e2a2a;
+    --accent: #e8a87c;
+    --text: #e8e6e0;
+    --muted: #9a9a90;
+    --border: #353a35;
+    --tag-bg: #2e3530;
+    --shadow: 0 8px 30px rgba(0,0,0,.45);
+    --shadow-sm: 0 4px 16px rgba(0,0,0,.35);
+    --sound-bg: #2e3530;          /* sound rows — elevated dark surface in dark mode */
+    --sound-bg-active: #3a423a;
 }
 
 /* ---- Navbar: word-cards style ---- */
@@ -78,6 +99,29 @@ body {
 .nav-links a:hover { color: var(--primary); background: var(--tag-bg); }
 .nav-user { color: var(--primary); font-size: 13px; font-weight: 600; }
 
+/* ---- Theme toggle button ---- */
+.theme-toggle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    padding: 0;
+    transition: all .2s;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.theme-toggle:hover { border-color: var(--primary); color: var(--primary); }
+.theme-toggle:active { transform: scale(.92); }
+
 /* ---- Container ---- */
 .container {
     max-width: 1200px;
@@ -99,7 +143,7 @@ body {
 }
 
 .message-error { background: rgba(217,119,119,.12); color: #c0392b; }
-.message-success { background: rgba(74,124,89,.12); color: var(--primary); }
+.message-success { background: rgba(255,146,146,.14); color: var(--primary); }
 
 /* ============================================================
    HOMEPAGE — Board Cards
@@ -205,7 +249,7 @@ body {
 
 .mode-badge {
     background: var(--primary);
-    color: #fff;
+    color: var(--on-primary);
     font-size: 14px;
     font-weight: 600;
     padding: 10px 22px;
@@ -233,7 +277,7 @@ body {
 
 .mode-tab:active { border-color: var(--primary); color: var(--primary); }
 .mode-tab.accent { border-color: var(--accent); color: var(--accent); }
-.mode-tab.active-mode { background: var(--primary); color: #fff; border-color: var(--primary); }
+.mode-tab.active-mode { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
 
 .mode-actions {
     display: flex;
@@ -414,13 +458,14 @@ body {
     align-items: center;
     gap: 12px;
     padding: 16px 18px;
-    background: #faf8f3;
+    background: var(--sound-bg);
+    color: var(--text);
     border-radius: 14px;
     cursor: pointer;
     transition: background .15s, transform .15s;
 }
 
-.ph-line:active { background: #f1ede4; transform: scale(.99); }
+.ph-line:active { background: var(--sound-bg-active); transform: scale(.99); }
 
 .ph-zhen {
     display: flex;
@@ -433,13 +478,14 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 16px 18px;
-    background: #faf8f3;
+    background: var(--sound-bg);
+    color: var(--text);
     border-radius: 14px;
     cursor: pointer;
     transition: background .15s, transform .15s;
 }
 
-.ph-cell:active { background: #f1ede4; transform: scale(.99); }
+.ph-cell:active { background: var(--sound-bg-active); transform: scale(.99); }
 
 .ph-cell .ph-zh { font-size: 28px; font-weight: 700; color: var(--text); }
 .ph-cell .ph-en { font-size: 28px; color: var(--text); }
@@ -449,14 +495,15 @@ body {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: var(--primary);
-    color: #fff;
+    background: transparent;
+    border: 2px solid rgba(255,146,146,.3);
+    color: var(--primary);
     flex: none;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 16px;
-    box-shadow: 0 3px 10px rgba(74,124,89,.25);
+    box-shadow: 0 3px 10px rgba(255,146,146,.3);
 }
 
 .ph-sound.muted { opacity: .25; }
@@ -556,6 +603,62 @@ body {
     flex: none;
 }
 
+.card-img-area .card-nav-side {
+    position: absolute;
+    right: 14px;
+    bottom: 18px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+    z-index: 2;
+}
+/* Frosted glass (磨砂玻璃) — no glow, soft white line */
+.card-img-area .card-nav-side .nav-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.4);
+    background: rgba(242,242,242,.5);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    backdrop-filter: blur(10px) saturate(180%);
+    color: #fff;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+/* Specular highlight arcs — the "liquid glass" sheen */
+.card-img-area .card-nav-side .nav-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(130% 85% at 50% -22%, rgba(255,255,255,.9) 0%, rgba(255,255,255,0) 52%);
+    pointer-events: none;
+}
+.card-img-area .card-nav-side .nav-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(130% 85% at 50% 122%, rgba(255,255,255,.4) 0%, rgba(255,255,255,0) 52%);
+    pointer-events: none;
+}
+.card-img-area .card-nav-side .nav-btn.accent {
+    background: rgba(242,242,242,.5);
+    border-color: rgba(255,255,255,.6);
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.card-img-area .card-nav-side .nav-btn:active {
+    transform: scale(.92);
+}
+
 @media (min-width: 769px) { .card-texts { padding: 16px 0 14px; } }
 
 /* Card nav */
@@ -574,7 +677,7 @@ body {
     height: 52px;
     border-radius: 50%;
     background: var(--primary);
-    color: #fff;
+    color: var(--on-primary);
     border: none;
     font-size: 24px;
     cursor: pointer;
@@ -587,7 +690,7 @@ body {
 
 .nav-btn:active { transform: scale(.92); }
 .nav-btn.ghost { background: #eef2e6; color: var(--primary); }
-.nav-btn.accent { background: var(--accent); }
+.nav-btn.accent { background: var(--accent); color: var(--on-primary); }
 
 .card-nav .nav-count {
     font-size: 14px;
@@ -688,7 +791,7 @@ body {
 }
 
 .quiz-option:active { border-color: var(--primary); }
-.quiz-option.correct { background: rgba(74,124,89,.1); border-color: var(--primary); color: var(--primary); }
+.quiz-option.correct { background: rgba(255,146,146,.14); border-color: var(--primary); color: var(--primary); }
 .quiz-option.wrong { background: rgba(217,119,119,.1); border-color: #d97777; color: #c0392b; }
 .quiz-option:disabled { cursor: not-allowed; }
 
@@ -705,7 +808,7 @@ body {
 .quiz-feedback .success { color: var(--primary); }
 .quiz-feedback .error { color: #c0392b; }
 
-.quiz-result { text-align: center; padding: 20px; }
+.quiz-result { text-align: center; padding: 20px; display:flex; flex-direction:column; flex:1; justify-content:center; }
 
 .quiz-result .big-score {
     font-size: 56px;
@@ -799,7 +902,7 @@ body {
 
 .btn-primary {
     background: var(--primary);
-    color: #fff;
+    color: var(--on-primary);
     margin-top: 10px;
 }
 
@@ -922,6 +1025,21 @@ body {
     border: none;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+
+.img-fs .fs-zoom-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+.img-fs .fs-zoom-wrap img {
+    display: block;
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
 }
 
 .img-fs .fs-tip {

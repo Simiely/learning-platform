@@ -9,7 +9,63 @@ import random
 import json
 import hashlib
 import os
+import cv2
 import numpy as np
+
+
+def _detect_image_center(image_path):
+    """Detect visual focus center using saliency detection first,
+    then fall back to edge-weighted centroid.
+    Returns CSS object-position string like '50% 30%' (top-left origin).
+    Returns None if detection fails."""
+    if not image_path or not os.path.exists(image_path):
+        return None
+    try:
+        img = cv2.imread(image_path)
+        if img is None:
+            return None
+        h, w = img.shape[:2]
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        cx, cy = None, None
+
+        # Step 1: Saliency detection (finds prominent region — typically face/head)
+        try:
+            sal = cv2.saliency.StaticSaliencyFineGrained_create()
+            _, sal_map = sal.computeSaliency(img)
+            sal_f = sal_map.astype(np.float32)
+            total = sal_f.sum()
+            if total > 100:
+                ys = np.arange(h, dtype=np.float32).reshape(-1, 1)
+                xs = np.arange(w, dtype=np.float32).reshape(1, -1)
+                cy = (sal_f * ys).sum() / total
+                cx = (sal_f * xs).sum() / total
+        except Exception:
+            pass
+
+        # Step 2: Edge-weighted centroid fallback
+        if cx is None:
+            edges = cv2.Canny(gray, 50, 150)
+            ys = np.arange(h, dtype=np.float32).reshape(-1, 1)
+            weight = 1.0 + 0.6 * (1.0 - ys / h)
+            weighted = edges.astype(np.float32) * weight
+            m00 = weighted.sum()
+            if m00 > 10:
+                xs = np.arange(w, dtype=np.float32).reshape(1, -1)
+                ys = np.arange(h, dtype=np.float32).reshape(-1, 1)
+                cx = (weighted * xs).sum() / m00
+                cy = (weighted * ys).sum() / m00
+
+        if cx is None or cy is None:
+            return None
+
+        pct_x = round(cx / w * 100)
+        pct_y = round(cy / h * 100)
+        pct_x = max(5, min(95, pct_x))
+        pct_y = max(5, min(95, pct_y))
+        return f'{pct_x}% {pct_y}%'
+    except Exception:
+        return None
 
 
 def _image_bg_color(image_path, darken=0.6):
@@ -142,7 +198,7 @@ def category_cards_view(request, slug):
         'emoji': it.emoji,
         'fact': it.fact,
         'image': it.image.name if it.image else '',
-        'bg_color': it.bg_color or '',
+        'image_position': it.image_position or '50% 50%',
         'audio_zh': it.audio.name if it.audio else '',
         'audio_en': it.audio_en.name if it.audio_en else '',
         'audio_fact': it.audio_fact.name if it.audio_fact else '',
@@ -155,17 +211,17 @@ def category_cards_view(request, slug):
     })
 
 
-@login_required
 def item_detail_api(request, item_id):
     item = get_object_or_404(Item, id=item_id)
-    progress, _ = LearningProgress.objects.get_or_create(
-        user=request.user, item=item,
-        defaults={'learned': True, 'view_count': 1}
-    )
-    if progress.id:
-        progress.view_count += 1
-        progress.learned = True
-        progress.save()
+    if request.user.is_authenticated:
+        progress, _ = LearningProgress.objects.get_or_create(
+            user=request.user, item=item,
+            defaults={'learned': True, 'view_count': 1}
+        )
+        if progress.id:
+            progress.view_count += 1
+            progress.learned = True
+            progress.save()
     return JsonResponse({
         'id': item.id,
         'name': item.name,
@@ -173,32 +229,32 @@ def item_detail_api(request, item_id):
         'emoji': item.emoji,
         'fact': item.fact,
         'image': item.image.name if item.image else '',
-        'image_position': item.image_position or 'center center',
+        'image_position': item.image_position or '50% 50%',
         'audio_zh': item.audio.name if item.audio else '',
         'audio_en': item.audio_en.name if item.audio_en else '',
         'audio_fact': item.audio_fact.name if item.audio_fact else '',
     })
 
 
-@login_required
 def reset_visited(request, slug):
     """Reset visited state for all items in a category (client-side storage handle via localStorage)."""
     return JsonResponse({'status': 'ok'})
 
 
-@login_required
 def mark_viewed(request, item_id):
     if request.method == 'POST':
         item = get_object_or_404(Item, id=item_id)
-        progress, created = LearningProgress.objects.get_or_create(
-            user=request.user, item=item,
-            defaults={'learned': True, 'view_count': 1}
-        )
-        if not created:
-            progress.view_count += 1
-            progress.learned = True
-            progress.save()
-        return JsonResponse({'status': 'ok', 'view_count': progress.view_count})
+        if request.user.is_authenticated:
+            progress, created = LearningProgress.objects.get_or_create(
+                user=request.user, item=item,
+                defaults={'learned': True, 'view_count': 1}
+            )
+            if not created:
+                progress.view_count += 1
+                progress.learned = True
+                progress.save()
+            return JsonResponse({'status': 'ok', 'view_count': progress.view_count})
+        return JsonResponse({'status': 'ok'})
     return JsonResponse({'status': 'error'}, status=400)
 
 
@@ -222,7 +278,6 @@ def category_quiz_view(request, slug):
     })
 
 
-@login_required
 def quiz_question_api(request, slug):
     category = get_object_or_404(Category, slug=slug)
     items = list(category.items.all())
@@ -241,7 +296,7 @@ def quiz_question_api(request, slug):
         'correct_id': correct.id,
         'correct_name': correct.name,
         'image_url': correct.image.url if correct.image else None,
-        'image_position': correct.image_position or 'center center',
+        'image_position': correct.image_position or '50% 50%',
         'emoji': correct.emoji,
         'quiz_type': quiz_type,
         'options': [{'id': i.id, 'name': i.name, 'english_name': i.english_name, 'image_url': i.image.url if i.image else None} for i in options],
@@ -249,7 +304,6 @@ def quiz_question_api(request, slug):
     return JsonResponse(data)
 
 
-@login_required
 @require_POST
 def quiz_submit_batch(request, slug):
     category = get_object_or_404(Category, slug=slug)
@@ -261,12 +315,13 @@ def quiz_submit_batch(request, slug):
     except (json.JSONDecodeError, KeyError):
         return JsonResponse({'error': 'Invalid data'}, status=400)
 
-    QuizAttempt.objects.create(
-        user=request.user,
-        category=category,
-        total=total,
-        correct=correct,
-        quiz_type=quiz_type,
-    )
+    if request.user.is_authenticated:
+        QuizAttempt.objects.create(
+            user=request.user,
+            category=category,
+            total=total,
+            correct=correct,
+            quiz_type=quiz_type,
+        )
 
     return JsonResponse({'status': 'ok'})

@@ -182,6 +182,14 @@ class Command(BaseCommand):
                         if os.path.exists(src_fact):
                             with open(src_fact, 'rb') as f:
                                 item.audio_fact.save(audio_file, ContentFile(f.read()))
+                    # Auto-detect visual center if item has image and not yet checked
+                    if item.image and not item.image_position_checked:
+                        from apps.core.views import _detect_image_center
+                        pos = _detect_image_center(item.image.path)
+                        if pos:
+                            item.image_position = pos
+                            item.image_position_checked = True
+                            item.save(update_fields=['image_position', 'image_position_checked'])
                 else:
                     bg, fg = COLORS.get(slug, ('#888', '#fff'))
                     placeholder = generate_placeholder_image(name, bg, fg)

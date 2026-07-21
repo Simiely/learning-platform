@@ -37,6 +37,10 @@
 <script>
 var popupData = null;
 
+function centerPos(pos) {
+    return pos || '50% 50%';
+}
+
 function showPopup(data) {
     popupData = data;
     var p = document.getElementById('browse-popup');
@@ -49,11 +53,10 @@ function showPopup(data) {
     var emojiEl = document.getElementById('popup-emoji');
     if (data.image) {
         imgEl.src = data.image.startsWith('/') ? data.image : '/media/' + data.image;
-        imgEl.style.objectFit = 'contain';
-        imgEl.style.objectPosition = '';
+        imgEl.style.objectFit = 'cover';
+        imgEl.style.objectPosition = centerPos(data.image_position);
         imgEl.style.display = 'block';
         emojiEl.style.display = 'none';
-        document.querySelector('.popup-img').style.backgroundColor = data.bg_color || '#eef3e4';
     } else {
         imgEl.style.display = 'none';
         emojiEl.style.display = 'block';

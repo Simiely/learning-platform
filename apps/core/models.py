@@ -40,9 +40,13 @@ class Item(models.Model):
         upload_to='images/', blank=True, null=True,
         verbose_name='图片'
     )
-    bg_color = models.CharField(
-        max_length=7, blank=True, default='',
-        verbose_name='背景色', help_text='图片平均色+60%黑, 如 #2a1a0f'
+    image_position = models.CharField(
+        max_length=30, blank=True, default='50% 50%',
+        verbose_name='图片焦点', help_text='自动检测的视觉中心, CSS object-position 格式'
+    )
+    image_position_checked = models.BooleanField(
+        default=False, verbose_name='焦点已检测',
+        help_text='是否已经自动检测过图片视觉中心'
     )
     audio = models.FileField(
         upload_to='audio/', blank=True, null=True,

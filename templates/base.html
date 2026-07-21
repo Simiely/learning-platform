@@ -4,15 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}学习卡片{% endblock %}</title>
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem('theme') === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
     {% load static %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260721aa">
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-inner">
             <a href="{% url 'index' %}" class="nav-brand">学习卡片</a>
             <div class="nav-links">
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="切换深色模式" title="切换深色模式">&#127769;</button>
                 {% if user.is_authenticated %}
                     <a href="{% url 'profile' %}">统计</a>
                     <span class="nav-user">{{ user.username }}</span>
@@ -36,6 +46,28 @@
 
         {% block content %}{% endblock %}
     </main>
+
+    <script>
+        function toggleTheme() {
+            var root = document.documentElement;
+            var isDark = root.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                root.removeAttribute('data-theme');
+                try { localStorage.setItem('theme', 'light'); } catch (e) {}
+            } else {
+                root.setAttribute('data-theme', 'dark');
+                try { localStorage.setItem('theme', 'dark'); } catch (e) {}
+            }
+            updateThemeIcon();
+        }
+        function updateThemeIcon() {
+            var btn = document.querySelector('.theme-toggle');
+            if (!btn) return;
+            var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            btn.innerHTML = isDark ? '&#9728;' : '&#127769;';
+        }
+        updateThemeIcon();
+    </script>
 
     {% block extra_js %}{% endblock %}
 </body>
