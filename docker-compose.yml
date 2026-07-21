@@ -1,8 +1,9 @@
 services:
   web:
     build:
-      # 程序代码位置（构建来源）：仓库克隆到此目录
-      context: /mnt/usb2/Configs/learning-platform/app
+      # 程序代码位置（构建来源）：使用 docker-compose.yml 所在目录（.），
+      # 自动适配，无需固定绝对路径；把仓库放到任意目录运行即可。
+      context: .
       dockerfile: Dockerfile
     container_name: learning-platform
     ports:
