@@ -19,7 +19,7 @@ echo "==> [3/7] Syncing media from bundled image copy"
 # Volume mounts hide bundled media; keep a bundled copy so every deploy
 # can sync updated images/audio without needing network download.
 if [ -d /app/media-bundled ] && [ -n "$(ls -A /app/media-bundled)" ]; then
-    cp -ru /app/media-bundled/* /app/media/
+    cp -rf /app/media-bundled/* /app/media/
     echo "    media synced from bundled copy."
 else
     echo "    no bundled media found, using volume content as-is."
