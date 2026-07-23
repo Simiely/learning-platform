@@ -4,13 +4,13 @@
 {% block content %}
 <div class="mode-bar">
     <span class="mode-badge">浏览模式</span>
-    <div class="mode-tabs">
-        <a href="{% url 'category_browse' category.slug %}" class="mode-tab active-mode">浏览</a>
-        <a href="{% url 'category_cards' category.slug %}" class="mode-tab">卡片</a>
-        <a href="{% url 'category_quiz' category.slug %}" class="mode-tab">练习</a>
-    </div>
-    <div class="mode-actions">
-        <button class="reset-btn" onclick="resetVisited('{{ category.slug }}')">再来一次</button>
+    <span class="mode-badge mode-badge-reset" onclick="resetVisited('{{ category.slug }}')">再来一次</span>
+    <div class="mode-right">
+        <div class="mode-tabs">
+            <a href="{% url 'category_browse' category.slug %}" class="mode-tab active-mode">浏览</a>
+            <a href="{% url 'category_cards' category.slug %}" class="mode-tab">卡片</a>
+            <a href="{% url 'category_quiz' category.slug %}" class="mode-tab">练习</a>
+        </div>
     </div>
 </div>
 

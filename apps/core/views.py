@@ -122,6 +122,14 @@ def category_quiz_view(request: Any, slug: str) -> Any:
     quiz_type = request.GET.get("type", request.session.get("quiz_type", "image_to_name"))
     request.session["quiz_type"] = quiz_type
 
+    # Store previous quiz's used IDs; clear current quiz tracking
+    session_key = f"quiz_{slug}"
+    current_used = request.session.get(session_key, [])
+    if current_used:
+        request.session[f"{session_key}_prev"] = list(current_used)
+    request.session[session_key] = []
+    request.session.modified = True
+
     return render(
         request,
         "category_quiz.html",
@@ -137,11 +145,34 @@ def quiz_question_api(request: Any, slug: str) -> JsonResponse:
         return JsonResponse({"error": "Not enough items"}, status=400)
 
     quiz_type = request.GET.get("type", "image_to_name")
-    correct = random.choice(items)
+    session_key = f"quiz_{slug}"
+    used_ids = set(request.session.get(session_key, []))
+    prev_ids = set(request.session.get(f"{session_key}_prev", []))
+
+    # Exclude already-used (current session) and previous session IDs
+    excluded = used_ids | prev_ids
+    available = [i for i in items if i.id not in excluded]
+    # If not enough unique items left, just exclude current session duplicates
+    if len(available) < 1:
+        available = [i for i in items if i.id not in used_ids]
+    if len(available) < 1:
+        # All items used at least once — reset and start fresh
+        used_ids = set()
+        available = list(items)
+
+    correct = random.choice(available)
+    # Distractors: prefer items not yet used this session or last session
     others = [i for i in items if i.id != correct.id]
-    distractors = random.sample(others, min(3, len(others)))
+    # Shuffle to avoid same distractors every time
+    random.shuffle(others)
+    distractors = others[:3]
+
     options = [correct] + distractors
     random.shuffle(options)
+
+    # Track this question's correct answer
+    used_ids.add(correct.id)
+    request.session[session_key] = list(used_ids)
 
     data = {
         "correct_id": correct.id,

@@ -161,7 +161,7 @@ body {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 28px 20px 60px;
+    padding: 16px 20px 60px;
     flex: 1;
     width: 100%;
 }
@@ -276,10 +276,8 @@ body {
 .mode-bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 22px;
-    flex-wrap: wrap;
     gap: 12px;
+    margin-bottom: 22px;
 }
 
 .mode-badge {
@@ -290,6 +288,18 @@ body {
     padding: 10px 22px;
     border-radius: 999px;
     white-space: nowrap;
+    line-height: 1.3;
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    border: 1px solid var(--primary);
+}
+
+.mode-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
 }
 
 .mode-tabs {
@@ -301,13 +311,25 @@ body {
     background: var(--card);
     border: 1px solid var(--border);
     color: var(--text);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
-    padding: 9px 18px;
+    padding: 10px 22px;
     border-radius: 999px;
     text-decoration: none;
     white-space: nowrap;
     transition: all .15s;
+    line-height: 1.3;
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+}
+
+/* iPhone: smaller */
+@media (max-width: 480px) {
+    .mode-badge { font-size: 12px; padding: 8px 16px; min-height: 32px; }
+    .mode-tab   { font-size: 12px; padding: 8px 16px; min-height: 32px; }
+    .mode-bar   { gap: 8px; margin-bottom: 16px; }
+    .mode-right { gap: 8px; }
 }
 
 .mode-tab:active { border-color: var(--primary); color: var(--primary); }
@@ -321,20 +343,37 @@ body {
 }
 
 .reset-btn {
-    background: var(--card);
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    font-size: 13px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--muted);
+    border: 1px solid transparent;
+    color: #fff;
+    font-size: 14px;
     font-weight: 600;
-    padding: 9px 18px;
+    padding: 10px 22px;
     border-radius: 999px;
     cursor: pointer;
     font-family: var(--font);
     white-space: nowrap;
     transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    line-height: 1.3;
 }
 
 .reset-btn:active { background: var(--accent); color: #fff; }
+
+/* ---- dark gray badge variant (replaces reset-btn, same size as badge) ---- */
+.mode-badge-reset {
+    background: var(--muted);
+    color: #fff;
+    border-color: transparent;
+    cursor: pointer;
+    transition: all .15s;
+}
+.mode-badge-reset:active { background: var(--accent); }
+.mode-badge-reset:hover { opacity: 0.85; }
 
 /* ============================================================
    BROWSE MODE — Tile Grid
@@ -437,7 +476,7 @@ body {
     background: linear-gradient(140deg, #eef3e4 0%, #dce7cf 100%);
     flex: 1 1 auto;
     min-height: 260px;
-    margin: 8px 20px 0;
+    margin: 20px 20px 0;
     border-radius: 14px;
     display: flex;
     align-items: center;
@@ -484,16 +523,22 @@ body {
 
 /* popup counter */
 .popup-counter {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: 0;
     text-align: center;
     font-size: 13px;
-    color: var(--muted);
-    padding: 5px 0 0;
+    color: var(--text);
+    opacity: 0.5;
     font-weight: 600;
+    z-index: 3;
+    pointer-events: none;
 }
 
 /* pronunciation zones */
 .popup-texts {
-    padding: 20px 20px 40px;
+    padding: 20px 20px 30px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -577,7 +622,6 @@ body {
     margin: 0 -20px;
 }
 
-.card-page .card-counter,
 .card-page .card-texts,
 .card-page .card-nav {
     padding-left: 20px;
@@ -589,13 +633,20 @@ body {
 .card-page .card-img-area {
     border-radius: 14px;
     margin: 0 20px;
+    background: transparent;
 }
 .card-counter {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: 0;
     text-align: center;
-    font-size: 15px;
-    color: var(--muted);
-    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--text);
+    opacity: 0.5;
     font-weight: 600;
+    z-index: 3;
+    pointer-events: none;
 }
 
 .card-main {

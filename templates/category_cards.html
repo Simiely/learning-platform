@@ -4,20 +4,22 @@
 {% block content %}
 <div class="mode-bar">
     <span class="mode-badge">卡片模式</span>
-    <div class="mode-tabs">
-        <a href="{% url 'category_browse' category.slug %}" class="mode-tab">浏览</a>
-        <a href="{% url 'category_cards' category.slug %}" class="mode-tab active-mode">卡片</a>
-        <a href="{% url 'category_quiz' category.slug %}" class="mode-tab">练习</a>
+    <div class="mode-right">
+        <div class="mode-tabs">
+            <a href="{% url 'category_browse' category.slug %}" class="mode-tab">浏览</a>
+            <a href="{% url 'category_cards' category.slug %}" class="mode-tab active-mode">卡片</a>
+            <a href="{% url 'category_quiz' category.slug %}" class="mode-tab">练习</a>
+        </div>
     </div>
 </div>
 
 {% if items %}
 <div class="card-page">
-    <div class="card-counter" id="card-counter">1 / {{ total }}</div>
     <div class="card-main">
         <div class="card-img-area">
             <span class="ci-emoji" id="card-emoji">{{ category.icon }}</span>
             <img id="card-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;cursor:zoom-in;" onclick="zoomCardImage()">
+            <div class="card-counter" id="card-counter">1 / {{ total }}</div>
             <div class="card-nav-side">
                 <button class="nav-btn" type="button" onclick="cardPrev()" title="上一张">&lsaquo;</button>
                 <button class="nav-btn accent" type="button" onclick="cardRandom()" title="随机">&#127922;</button>

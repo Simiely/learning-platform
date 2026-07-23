@@ -3,11 +3,13 @@
 
 {% block content %}
 <div class="mode-bar">
-    <span class="mode-badge">{{ category.name }} 练习</span>
-    <div class="mode-tabs">
-        <a href="{% url 'category_browse' category.slug %}" class="mode-tab">浏览</a>
-        <a href="{% url 'category_cards' category.slug %}" class="mode-tab">卡片</a>
-        <a href="{% url 'category_quiz' category.slug %}" class="mode-tab active-mode">练习</a>
+    <span class="mode-badge">练习模式</span>
+    <div class="mode-right">
+        <div class="mode-tabs">
+            <a href="{% url 'category_browse' category.slug %}" class="mode-tab">浏览</a>
+            <a href="{% url 'category_cards' category.slug %}" class="mode-tab">卡片</a>
+            <a href="{% url 'category_quiz' category.slug %}" class="mode-tab active-mode">练习</a>
+        </div>
     </div>
 </div>
 
