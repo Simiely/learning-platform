@@ -220,3 +220,23 @@ container-card (height: calc(100vh-52px), overflow:hidden)
 
 viewport meta 加 `user-scalable=no`，阻止浏览器默认双击缩放。
 应用内图片缩放（CSS transform）不受影响。
+
+### Web Audio API 合成音效（2026-07-23）
+
+答对/答错/翻卡音效用 Web Audio API OscillatorNode 合成，不需要额外音频文件。
+- 答对：3个上升正弦波（C5-E5-G5），清脆悦耳
+- 答错：正弦波 440Hz→300Hz 平滑下降，柔和提示
+- AudioContext 在用户点击回调中创建，iOS 不会拦截
+
+### Canvas 礼花在 iPad 上卡顿（2026-07-23）
+
+**现象**：电脑流畅，iPad 卡顿。
+
+**根因**：iPad Retina 屏 devicePixelRatio=2，canvas 没有适配 DPR。浏览器在后台做隐式缩放，消耗 GPU。
+
+**修复**：canvas 尺寸 = 逻辑像素 × DPR（上限2），ctx.scale(dpr, dpr) 映射坐标。CSS 尺寸保持逻辑像素。
+
+### 动物数据清单（2026-07-23）
+
+`ANIMALS.md` 是所有动物数据的主数据源（21 已上线 + 20 待补充）。
+修改动物内容（增减、科普、焦点）先编辑这个文件，再同步到 `seed_data.py`。

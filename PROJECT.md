@@ -4,7 +4,17 @@
 
 ## 项目概述
 
-**Lets Learn** — 幼儿识字/认知闪卡平台。Django 后端 + Alpine.js 前端，专为 iPad / iPhone 触屏设计。
+**Lets Learn** — 幼儿识字/认知闪卡平台。
+
+### 前置清单
+
+更新项目内容（增减动物、修改科普、调整图片焦点）的第一步是编辑 **`ANIMALS.md`**。这是所有动物数据的主数据源，包含：
+
+- 21 只已上线动物（图片焦点已手动校准 ✅）
+- 20 只待补充动物（图片和音频到位后激活 ❌）
+- 中英文名、Emoji、图片/音频文件名、科普知识、图片焦点
+
+修改清单后，再同步更新 `seed_data.py` 里的 `ANIMALS` 表格，重新部署即可生效。Django 后端 + Alpine.js 前端，专为 iPad / iPhone 触屏设计。
 
 仓库：`github.com/Simiely/learning-platform`
 本地工作目录：`D:\workbuddy\2026-07-23-09-03-34\learning-platform`

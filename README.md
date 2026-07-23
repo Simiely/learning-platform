@@ -6,7 +6,7 @@
 
 - **浏览模式**：拼音排序的动物卡片网格，点击弹出全屏详情（支持图片缩放 + 前后翻页）+ 自动发音
 - **卡片模式**：全屏沉浸式卡片，随机起始 + 拼音排序 + 前后翻页，图片缩放（滚轮/双指），进场自动播放中英文发音
-- **练习模式**：看图选词，即时反馈，10 题一组，题目不重复。答对撒花特效 + 自动朗读中英文。结果页大字报排版
+- **练习模式**：看图选词，即时反馈，10 题一组，题目不重复。答对撒花 + 音效，答错柔和提示音。答题后自动朗读中英文。结果页大字报
 - **三语发音**：中文 / 英文 / 科普语音，自动连播
 - **智能配色**：浏览方块背景基于 emoji 平均色动态生成
 - **三态主题**：深色 → 浅色 → 自动（跟随系统），偏好记忆到 localStorage
@@ -61,14 +61,13 @@ docker compose up -d
 ```
 learning-platform/
 ├── apps/core/          # 核心应用（模型/视图/管理命令）
-│   ├── image_utils.py  # 图片焦点检测 + emoji 取色
-│   ├── models.py       # Category / Item / Progress / Quiz
-│   └── management/commands/  # seed_data / detect_centers / ensure_media
-├── apps/users/         # 用户模块（注册/登录/统计）
+├── apps/users/         # 用户模块
 ├── config/             # Django 配置
-├── templates/          # HTML 模板（3 种模式 + 弹窗 + 登录）
-├── static/             # CSS + JS
-├── media/              # 图片与音频素材（已纳入 git）
+├── templates/          # HTML 模板
+├── static/             # CSS + JS（Alpine.js 本地托管）
+├── media/              # 图片与音频素材
+├── ANIMALS.md          # 动物数据主清单（21 已上线 + 20 待补充）
+├── PROJECT.md          # 项目开发说明
 └── requirements.txt
 ```
 

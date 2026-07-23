@@ -92,11 +92,15 @@
         if (popupItems.length === 0) return;
         popupIndex = popupIndex > 0 ? popupIndex - 1 : popupItems.length - 1;
         renderPopup();
+        setTimeout(function() { playBrowseAudio('zh'); }, 300);
+        setTimeout(function() { playBrowseAudio('en'); }, 1300);
     };
     window.popupNext = function() {
         if (popupItems.length === 0) return;
         popupIndex = popupIndex < popupItems.length - 1 ? popupIndex + 1 : 0;
         renderPopup();
+        setTimeout(function() { playBrowseAudio('zh'); }, 300);
+        setTimeout(function() { playBrowseAudio('en'); }, 1300);
     };
 
     window.closeBrowsePopup = function(e) {

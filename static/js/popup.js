@@ -1,9 +1,35 @@
 /* Popup overlay for browse mode -- shared by all browse pages */
 
 var popupData = null;
+var popupIdx = -1;
+var popupList = [];
 
-function showPopup(data) {
+/* ---- Correct Answer / Switch Card Sound ---- */
+function playCorrectSound() {
+    try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var now = ctx.currentTime;
+        [523, 659, 784].forEach(function(freq, i) {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.3, now + i * 0.12);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.12 + 0.2);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + i * 0.12);
+            osc.stop(now + i * 0.12 + 0.2);
+        });
+    } catch(e) {}
+}
+
+function showPopup(data, playSound) {
     popupData = data;
+    // Find index in list for prev/next
+    if (playSound) {
+        playCorrectSound();
+    }
     var p = document.getElementById('browse-popup');
     document.getElementById('popup-zh').textContent = data.name || '';
     document.getElementById('popup-en').textContent = data.english_name || '';
