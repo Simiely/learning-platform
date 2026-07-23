@@ -9,7 +9,7 @@ ENV DJANGO_ALLOWED_HOSTS=*
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libfreetype6 libglib2.0-0 libgomp1 \
+    libfreetype6 libglib2.0-0 libgomp1 rsync \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
