@@ -82,6 +82,8 @@
     </template>
 </div>
 
+<canvas id="confetti-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:999;display:none;"></canvas>
+
 <script>
 function quizApp(cat, token) {
     return {
@@ -112,7 +114,10 @@ function quizApp(cat, token) {
             this.selectedId = id;
             this.answered = true;
             this.isCorrect = (id === this.currentQuestion.correct_id);
-            if (this.isCorrect) this.score++;
+            if (this.isCorrect) {
+                this.score++;
+                launchConfetti();
+            }
             this.current++;
             // Play correct animal audio: Chinese → 1s → English
             this.playQuizAudio();
@@ -149,6 +154,63 @@ function quizApp(cat, token) {
             });
         }
     };
+}
+
+/* ---- Confetti Burst ---- */
+function launchConfetti() {
+    var c = document.getElementById('confetti-canvas');
+    c.style.display = 'block';
+    var ctx = c.getContext('2d');
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    var colors = ['#ff9292','#f4a261','#e76f51','#2a9d8f','#e9c46a','#ff6b6b','#90be6d','#577590','#ffbe0b','#fb5607'];
+    var particles = [];
+    var cx = c.width / 2, cy = c.height / 2;
+    var total = 80;
+    // Explode from boundary between image and options
+    var img = document.querySelector('.quiz-img');
+    var rect = img ? img.getBoundingClientRect() : null;
+    var ox = rect ? (rect.left + rect.width / 2) : cx;
+    var oy = rect ? rect.bottom : cy * 0.65;
+    for (var i = 0; i < total; i++) {
+        var angle = Math.random() * Math.PI * 2;
+        var speed = 2 + Math.random() * 6;
+        var size = 3 + Math.random() * 6;
+        particles.push({
+            x: ox, y: oy,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: size,
+            life: 1
+        });
+    }
+    var frame = 0;
+    function draw() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        for (var i = 0; i < particles.length; i++) {
+            var p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.15;
+            p.life -= 0.016;
+            if (p.life <= 0) continue;
+            ctx.save();
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+        frame++;
+        if (frame < 70) {
+            requestAnimationFrame(draw);
+        } else {
+            c.style.display = 'none';
+        }
+    }
+    requestAnimationFrame(draw);
 }
 </script>
 <script>
