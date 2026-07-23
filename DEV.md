@@ -191,3 +191,32 @@ container-card (height: calc(100vh-52px), overflow:hidden)
 - 满分：「🎉 满分！太厉害了！」
 - 6-9 个：「不错，继续加油」
 - 结果区 `padding-top: 60px` 下移避免太靠上
+
+### 答对礼花特效（2026-07-23）
+
+纯 JS Canvas 粒子爆炸：80 颗彩色圆点从图片底部边缘为中心向四周炸开，带重力下坠 + 渐隐。
+`launchConfetti()` 在 `selectAnswer` 答对时触发。
+
+### Docker 部署媒体同步策略（2026-07-23）
+
+**问题**：更新了种子数据中的图片焦点、替换了媒体文件（如鸭图），但 Docker 部署后不生效。
+
+**根因分析**：
+1. **图片焦点**：`seed_data` 只在数据库为空时运行，已有数据容器直接跳过 → `sync_positions` 命令每次启动从 seed_data 同步
+2. **媒体文件**：之前 `ensure_media` 从 GitHub tarball 下载，已存在就跳过；且 `.dockerignore` 排除了 `media/`，镜像内没有媒体文件
+
+**修复**：
+- `.dockerignore` 去掉 `media/`，让镜像自带媒体
+- Dockerfile 构建时 `cp` 一份 `/app/media-bundled`
+- entrypoint 用 `rsync -ac` 从 bundled 同步到卷，checksum 比较只传变化文件
+- 新增 `sync_positions` 命令，每次启动更新 image_position 字段
+
+### 浏览弹窗自动发音（2026-07-23）
+
+`showPopup()` → 300ms 后播中文 → 1300ms 后播英文，与卡片模式时序一致。
+`playBrowseAudio` 播放前先 `pause()` + `removeAttribute('src')` 避免音频冲突。
+
+### iPad 双击缩放禁用（2026-07-23）
+
+viewport meta 加 `user-scalable=no`，阻止浏览器默认双击缩放。
+应用内图片缩放（CSS transform）不受影响。
