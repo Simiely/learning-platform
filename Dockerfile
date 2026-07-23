@@ -17,6 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Keep bundled copy of media so entrypoint can sync updates to volume
+RUN cp -r /app/media /app/media-bundled
+
 # collectstatic moved to entrypoint — needs SECRET_KEY / DEBUG at runtime
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh

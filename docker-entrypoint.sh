@@ -15,8 +15,15 @@ python manage.py collectstatic --noinput
 echo "==> [2/6] Running database migrations"
 python manage.py migrate --noinput
 
-echo "==> [3/6] Ensuring media assets"
-python manage.py ensure_media
+echo "==> [3/7] Syncing media from bundled image copy"
+# Volume mounts hide bundled media; keep a bundled copy so every deploy
+# can sync updated images/audio without needing network download.
+if [ -d /app/media-bundled ] && [ -n "$(ls -A /app/media-bundled)" ]; then
+    cp -ru /app/media-bundled/* /app/media/
+    echo "    media synced from bundled copy."
+else
+    echo "    no bundled media found, using volume content as-is."
+fi
 
 echo "==> [4/6] Seeding sample data (first boot only)"
 python manage.py shell -c \
