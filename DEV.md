@@ -145,3 +145,49 @@ position: absolute; top: 10px; opacity: 0.5; pointer-events: none;
 ### `<button>` 渲染尺寸偏差
 
 见上文「iOS Safari 渲染差异」一节。用 `<span>` 替代 `<button>` 解决。
+
+### Safari Tracking Prevention 导致 CDN 脚本卡顿（2026-07-23）
+
+**现象**：练习模式突然变得非常卡顿，控制台报 `Tracking Prevention blocked access to storage for https://cdn.jsdelivr.net/...alpinejs...`
+
+**根因**：Safari 智能追踪防护阻止了 CDN 域的 Alpine.js 访问 localStorage/Web Storage，导致脚本执行挂起。
+
+**修复**：将 Alpine.js 从 CDN 下载到 `static/js/alpine.min.js`，模板改用 `{% static 'js/alpine.min.js' %}`。同域静态文件不受追踪防护限制。
+
+**教训**：关键 JS 库不要用 CDN，下载到项目本地托管更可靠。
+
+### 练习模式按钮溢出裁剪（2026-07-23）
+
+**现象**：「下一题」按钮贴边甚至超出可视范围，容器 `overflow: hidden` 裁剪底部。
+
+**根因**：`quiz-feedback` 高度（70px）小于实际内容需求。内容 = padding(8) + 文字区(24px) + 按钮 margin(4px) + 按钮高度(~44px) + padding-bottom(8) = 88px。
+
+**完整布局链**：
+```
+container-card (height: calc(100vh-52px), overflow:hidden)
+  quiz-body (flex:1)
+    quiz-round (flex:1, min-height:0)
+      quiz-img (flex:1, min-height:0)
+      quiz-options (flex:none, ~118px)
+      quiz-feedback (flex:none, 必须 ≥ 88px)
+```
+
+**修复**：`quiz-feedback` 高度设为 90px，确保内容不溢出。任何高度调整需验证 `∑(flex:none) ≤ height(container-card)`。
+
+### 练习答题后自动朗读（2026-07-23）
+
+`selectAnswer()` 调用 `playQuizAudio()` → 播放中文音频 → 1s 后播放英文。
+需要 API 返回 `audio_zh`、`audio_en` 字段，前端用 `<audio>` 元素播放。
+`play()` 用 `.catch` 静默处理 iOS 自动播放拦截。
+
+### 图片容器统一透明背景（2026-07-23）
+
+`.popup-img`、`.card-img-area`、`.quiz-img` 全部设 `background: transparent`。
+消除渐变底色从 `border-radius` 圆角边缘透出的 1px 白边。
+
+### 练习结果大字报排版（2026-07-23）
+
+- 显示「对了 X 个」，数字 64px，「对了」「个」28px
+- 满分：「🎉 满分！太厉害了！」
+- 6-9 个：「不错，继续加油」
+- 结果区 `padding-top: 60px` 下移避免太靠上
