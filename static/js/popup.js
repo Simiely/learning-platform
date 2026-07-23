@@ -37,13 +37,12 @@ function showPopup(data) {
     p.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 
-    // Auto-play: Chinese first, then English after 1 second
-    setTimeout(function () { playBrowseAudio('zh'); }, 400);
-    setTimeout(function () { playBrowseAudio('en'); }, 1400);
+    // Auto-play: Chinese, then 1s gap, then English (same as card mode)
+    setTimeout(function () { playBrowseAudio('zh'); }, 300);
+    setTimeout(function () { playBrowseAudio('en'); }, 1300);
 }
 
 function closeBrowsePopup(e) {
-    // Only check event-target when called from an event handler
     if (e && e.type && e.target !== document.getElementById("browse-popup")) return;
     document.getElementById("browse-popup").style.display = "none";
     document.body.style.overflow = "";
@@ -57,6 +56,8 @@ function playBrowseAudio(type) {
     if (!audio || !popupData) return;
     var src = popupData['audio_' + type];
     if (!src) return;
+    audio.pause();
+    audio.removeAttribute('src');
     audio.src = src.startsWith('/') ? src : '/media/' + src;
     audio.load();
     audio.play().catch(function (e) {
