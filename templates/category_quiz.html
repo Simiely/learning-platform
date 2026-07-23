@@ -75,7 +75,55 @@
 </div>
 
 <script>
-function quizApp(cat,token){return{categorySlug:cat,state:'playing',current:0,score:0,currentQuestion:null,selectedId:null,answered:false,isCorrect:false,async nextQuestion(){if(this.current>=10){this.state='done';this.submitResult();return}this.selectedId=null;this.answered=false;this.isCorrect=false;const r=await fetch('/api/quiz/'+this.categorySlug+'/question/?type=image_to_name');this.currentQuestion=await r.json()},selectAnswer(id){if(this.answered)return;this.selectedId=id;this.answered=true;this.isCorrect=(id===this.currentQuestion.correct_id);if(this.isCorrect)this.score++;this.current++},async submitResult(){await fetch('/api/quiz/'+this.categorySlug+'/submit/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':token},body:JSON.stringify({total:10,correct:this.score,quiz_type:'image_to_name'})})}}}
+function quizApp(cat, token) {
+    return {
+        categorySlug: cat,
+        state: 'playing',
+        current: 0,
+        score: 0,
+        currentQuestion: null,
+        selectedId: null,
+        answered: false,
+        isCorrect: false,
+
+        async nextQuestion() {
+            if (this.current >= 10) {
+                this.state = 'done';
+                this.submitResult();
+                return;
+            }
+            this.selectedId = null;
+            this.answered = false;
+            this.isCorrect = false;
+            var r = await fetch('/api/quiz/' + this.categorySlug + '/question/?type=image_to_name');
+            this.currentQuestion = await r.json();
+        },
+
+        selectAnswer(id) {
+            if (this.answered) return;
+            this.selectedId = id;
+            this.answered = true;
+            this.isCorrect = (id === this.currentQuestion.correct_id);
+            if (this.isCorrect) this.score++;
+            this.current++;
+        },
+
+        async submitResult() {
+            await fetch('/api/quiz/' + this.categorySlug + '/submit/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': token
+                },
+                body: JSON.stringify({
+                    total: 10,
+                    correct: this.score,
+                    quiz_type: 'image_to_name'
+                })
+            });
+        }
+    };
+}
 </script>
 <script>
 function centerPos(pos) {

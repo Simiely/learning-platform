@@ -1,11 +1,15 @@
 import os
 from django.core.management.base import BaseCommand
 from apps.core.models import Item, Category
-from apps.core.views import _detect_image_center
+from apps.core.image_utils import detect_image_center
 
 
 class Command(BaseCommand):
-    help = 'Auto-detect visual focus center (image_position) for unchecked images'
+    help = (
+        "Auto-detect visual focus center (image_position) for unchecked images.\n"
+        "NOTE: items with image_position_checked=True are skipped unless --force.\n"
+        "The seed data has hand-tuned positions — do NOT --force on them."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -37,11 +41,20 @@ class Command(BaseCommand):
         fail = 0
 
         for item in qs:
-            path = item.image.path if os.path.exists(item.image.path) else None
-            if not path:
+            try:
+                path = item.image.path
+            except NotImplementedError:
+                # Non-local storage backend (e.g. S3) — skip
+                item.image_position_checked = True
+                item.save(update_fields=["image_position_checked"])
                 fail += 1
                 continue
-            pos = _detect_image_center(path)
+            if not os.path.exists(path):
+                item.image_position_checked = True
+                item.save(update_fields=["image_position_checked"])
+                fail += 1
+                continue
+            pos = detect_image_center(path)
             if pos:
                 item.image_position = pos
                 item.image_position_checked = True

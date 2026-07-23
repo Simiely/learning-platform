@@ -7,12 +7,12 @@
         <h2>注册</h2>
         <form method="post" class="auth-form">
             {% csrf_token %}
-            <label>用户名</label>
-            <input type="text" name="username" placeholder="请输入用户名" required>
-            <label>密码</label>
-            <input type="password" name="password1" placeholder="至少6位" required>
-            <label>确认密码</label>
-            <input type="password" name="password2" placeholder="再输一次" required>
+            <label for="id_username">用户名</label>
+            <input type="text" id="id_username" name="username" placeholder="请输入用户名" required autocomplete="username">
+            <label for="id_password1">密码</label>
+            <input type="password" id="id_password1" name="password1" placeholder="至少6位" required autocomplete="new-password">
+            <label for="id_password2">确认密码</label>
+            <input type="password" id="id_password2" name="password2" placeholder="再输一次" required autocomplete="new-password">
             <button type="submit" class="btn btn-primary">注册</button>
         </form>
         <p class="auth-switch">已有账号？<a href="{% url 'login' %}">立即登录</a></p>

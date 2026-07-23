@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -33,7 +37,7 @@ class Item(models.Model):
     )
     name = models.CharField(max_length=200, verbose_name='名称')
     english_name = models.CharField(max_length=200, blank=True, default='', verbose_name='英文名称')
-    emoji = models.CharField(max_length=10, blank=True, default='', verbose_name='表情符号')
+    emoji = models.CharField(max_length=50, blank=True, default='', verbose_name='表情符号')
     fact = models.TextField(blank=True, default='', verbose_name='科普知识',
                             help_text='点击可播放语音的科普说明文字')
     image = models.ImageField(
@@ -70,6 +74,21 @@ class Item(models.Model):
     def __str__(self):
         return f'{self.name} ({self.category.name})'
 
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-serialisable dict used by cards view and item_detail_api."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "english_name": self.english_name,
+            "emoji": self.emoji,
+            "fact": self.fact,
+            "image": self.image.url if self.image else "",
+            "image_position": self.image_position or "50% 50%",
+            "audio_zh": self.audio.url if self.audio else "",
+            "audio_en": self.audio_en.url if self.audio_en else "",
+            "audio_fact": self.audio_fact.url if self.audio_fact else "",
+        }
+
 
 class LearningProgress(models.Model):
     user = models.ForeignKey(
@@ -87,7 +106,12 @@ class LearningProgress(models.Model):
     class Meta:
         verbose_name = '学习进度'
         verbose_name_plural = '学习进度'
-        unique_together = ['user', 'item']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'item'],
+                name='unique_user_item_progress',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.user.username} - {self.item.name}'

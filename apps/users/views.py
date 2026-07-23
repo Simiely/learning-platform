@@ -1,10 +1,13 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout, authenticate
+from __future__ import annotations
+
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.contrib import messages
-from django.db.models import Count, Sum
-from apps.core.models import LearningProgress, QuizAttempt, Category
+from django.db.models import Count, Q
+from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
+from apps.core.models import Category, QuizAttempt
 
 
 def register_view(request):
@@ -35,21 +38,27 @@ def register_view(request):
 
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect('index')
+        return redirect("index")
 
-    if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '').strip()
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "").strip()
 
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            next_url = request.GET.get('next', 'index')
-            return redirect(next_url)
+            next_url = request.GET.get("next", "")
+            if not url_has_allowed_host_and_scheme(
+                url=next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                next_url = "index"
+            return redirect(next_url) if next_url else redirect("index")
         else:
-            messages.error(request, '用户名或密码不对，再试试看～')
+            messages.error(request, "用户名或密码不对，再试试看～")
 
-    return render(request, 'login.html')
+    return render(request, "login.html")
 
 
 def logout_view(request):
@@ -59,37 +68,42 @@ def logout_view(request):
 
 @login_required
 def profile_view(request):
-    categories = Category.objects.all()
-    stats = []
+    categories = Category.objects.annotate(
+        item_count=Count("items"),
+        learned_count=Count(
+            "items__progress",
+            filter=Q(
+                items__progress__user=request.user,
+                items__progress__learned=True,
+            ),
+        ),
+    )
 
+    stats = []
     total_learned = 0
     total_items = 0
 
     for cat in categories:
-        item_count = cat.items.count()
-        learned_count = LearningProgress.objects.filter(
-            user=request.user,
-            item__category=cat,
-            learned=True
-        ).count()
+        item_count = cat.item_count
+        learned_count = cat.learned_count
         total_learned += learned_count
         total_items += item_count
 
         stats.append({
-            'category': cat,
-            'total': item_count,
-            'learned': learned_count,
-            'percent': round(learned_count / item_count * 100) if item_count > 0 else 0,
+            "category": cat,
+            "total": item_count,
+            "learned": learned_count,
+            "percent": round(learned_count / item_count * 100) if item_count > 0 else 0,
         })
 
     recent_quizzes = QuizAttempt.objects.filter(
         user=request.user
-    ).order_by('-created_at')[:10]
+    ).order_by("-created_at")[:10]
 
     context = {
-        'stats': stats,
-        'total_learned': total_learned,
-        'total_items': total_items,
-        'recent_quizzes': recent_quizzes,
+        "stats": stats,
+        "total_learned": total_learned,
+        "total_items": total_items,
+        "recent_quizzes": recent_quizzes,
     }
-    return render(request, 'profile.html', context)
+    return render(request, "profile.html", context)

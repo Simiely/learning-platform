@@ -3,8 +3,9 @@ __pycache__
 *.pyo
 .env
 venv
+.venv
 .git
-media/*
-db/*
+media/
+db/
 staticfiles
 .workbuddy

@@ -43,6 +43,7 @@
 (function() {
     var slug = '{{ category.slug }}';
     var storageKey = 'lc-visited-' + slug;
+    var browseItems = {{ items_json|safe }};
 
     // Load visited from localStorage
     var visited = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
@@ -76,39 +77,19 @@
         fetch('/api/reset-visited/' + s + '/', {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}}).catch(function(){});
     };
 
-    // Popup
-    function markAndOpen(id) {
+    window.openBrowsePopup = function(tile) {
+        var id = parseInt(tile.getAttribute('data-item-id'));
         visited.add(id);
         saveVisited();
         applyVisited();
-        // AJAX load item detail
-        fetch('/api/item/' + id + '/')
-            .then(function(r) { return r.json(); })
-            .then(function(data) { showPopup(data); })
-            .catch(function() {
-                // Fallback: use data attributes from the tile
-                var tile = document.querySelector('#browse-grid-' + slug + ' .b-tile[data-item-id="' + id + '"]');
-                if (tile) {
-                    showPopup({
-                        id: id,
-                        name: tile.getAttribute('data-item-name'),
-                        english_name: tile.getAttribute('data-item-en'),
-                        emoji: tile.getAttribute('data-item-emoji'),
-                        fact: tile.getAttribute('data-item-fact'),
-                        image: tile.getAttribute('data-item-img'),
-                        audio_zh: tile.getAttribute('data-item-audio'),
-                    });
-                }
-            });
-    }
-
-    window.openBrowsePopup = function(tile) {
-        var id = parseInt(tile.getAttribute('data-item-id'));
-        {% if user.is_authenticated %}
-        markAndOpen(id);
-        {% else %}
-        window.location.href = '{% url 'login' %}';
-        {% endif %}
+        // Find index in browseItems array
+        var idx = 0;
+        for (var i = 0; i < browseItems.length; i++) {
+            if (browseItems[i].id === id) { idx = i; break; }
+        }
+        showPopup(browseItems, idx);
+        // Also update on server for logged-in users
+        fetch('/api/item/' + id + '/').catch(function(){});
     };
 })();
 </script>

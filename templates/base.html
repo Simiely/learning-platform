@@ -4,17 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}学习卡片{% endblock %}</title>
+    {% load static %}
+    <script src="{% static 'js/theme.js' %}"></script>
     <script>
         (function () {
             try {
-                if (localStorage.getItem('theme') === 'dark') {
+                var theme = localStorage.getItem('theme');
+                if (theme === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                } else {
+                    // Default to dark (no stored pref or 'dark' or 'auto' → dark)
                     document.documentElement.setAttribute('data-theme', 'dark');
                 }
             } catch (e) {}
         })();
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
-    {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260721aa">
 </head>
 <body>
@@ -26,7 +31,10 @@
                 {% if user.is_authenticated %}
                     <a href="{% url 'profile' %}">统计</a>
                     <span class="nav-user">{{ user.username }}</span>
-                    <a href="{% url 'logout' %}">退出</a>
+                    <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-logout">退出</button>
+                    </form>
                 {% else %}
                     <a href="{% url 'login' %}">登录</a>
                     <a href="{% url 'register' %}">注册</a>
@@ -50,21 +58,31 @@
     <script>
         function toggleTheme() {
             var root = document.documentElement;
-            var isDark = root.getAttribute('data-theme') === 'dark';
-            if (isDark) {
+            var current = root.getAttribute('data-theme');
+            var next, store;
+            if (current === 'dark') {
+                next = 'light'; store = 'light';
+            } else if (current === 'light') {
+                // light → auto (remove attribute, let system decide)
                 root.removeAttribute('data-theme');
-                try { localStorage.setItem('theme', 'light'); } catch (e) {}
+                try { localStorage.setItem('theme', 'auto'); } catch (e) {}
+                updateThemeIcon();
+                return;
             } else {
-                root.setAttribute('data-theme', 'dark');
-                try { localStorage.setItem('theme', 'dark'); } catch (e) {}
+                // auto → dark
+                next = 'dark'; store = 'dark';
             }
+            root.setAttribute('data-theme', next);
+            try { localStorage.setItem('theme', store); } catch (e) {}
             updateThemeIcon();
         }
         function updateThemeIcon() {
             var btn = document.querySelector('.theme-toggle');
             if (!btn) return;
-            var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            btn.innerHTML = isDark ? '&#9728;' : '&#127769;';
+            var theme = document.documentElement.getAttribute('data-theme');
+            // dark=&#9728; light=&#127769; auto=&#127763;
+            btn.innerHTML = !theme ? '&#127763;' : (theme === 'dark' ? '&#9728;' : '&#127769;');
+            btn.title = !theme ? '自动（跟随系统）' : (theme === 'dark' ? '亮色模式' : '自动模式');
         }
         updateThemeIcon();
     </script>

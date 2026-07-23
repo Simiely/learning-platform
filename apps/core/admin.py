@@ -5,7 +5,7 @@ from .models import Category, Item, LearningProgress, QuizAttempt
 class ItemInline(admin.TabularInline):
     model = Item
     extra = 0
-    fields = ('name', 'english_name', 'fact', 'image', 'audio', 'sort_order')
+    fields = ('name', 'english_name', 'emoji', 'fact', 'image', 'audio', 'audio_en', 'audio_fact', 'sort_order')
 
 
 @admin.register(Category)

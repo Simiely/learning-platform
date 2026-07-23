@@ -13,6 +13,7 @@
 
 {% if items %}
 <div class="card-page">
+    <div class="card-counter" id="card-counter">1 / {{ total }}</div>
     <div class="card-main">
         <div class="card-img-area">
             <span class="ci-emoji" id="card-emoji">{{ category.icon }}</span>
@@ -56,16 +57,25 @@
 (function() {
     window.cardItems = {{ items_json|safe }};
     function centerPos(pos) {
-        // CSS object-position: the detected point aligns to container center.
-        // If point = 50% 50% (image center), stays centered.
-        // If point is at edge, image shifts until that edge hits the container.
-        return pos || '50% 50%';
+        // Image center detection tends to find the whole-animal centroid,
+        // but animal faces are usually in the upper portion.
+        // Bias the vertical position upward so faces stay visible in portrait containers.
+        if (!pos || pos === '50% 50%') return '50% 40%';
+        var parts = pos.split(' ');
+        var x = parts[0];
+        var yPct = parseInt(parts[1]) || 50;
+        // Pull focus point upward by ~30%
+        var adjustedY = Math.max(5, Math.round(yPct * 0.65));
+        return x + ' ' + adjustedY + '%';
     }
-    var current = 0;
+    // Random starting card: pick a random index so kids see variety each visit
+    var current = Math.floor(Math.random() * window.cardItems.length);
 
     function render() {
         var it = window.cardItems[current];
         if (!it) return;
+        // Card counter
+        document.getElementById('card-counter').textContent = (current + 1) + ' / ' + window.cardItems.length;
         document.getElementById('card-zh').textContent = it.name;
         document.getElementById('card-en').textContent = it.english_name || '';
         document.getElementById('card-fact').textContent = it.fact || '';
@@ -74,7 +84,7 @@
         var img = document.getElementById('card-img');
         var emoji = document.getElementById('card-emoji');
         if (it.image) {
-            img.src = '/media/' + it.image;
+            img.src = it.image;
             img.style.objectFit = 'cover';
             var pos = centerPos(it.image_position);
             img.style.objectPosition = pos;
@@ -99,7 +109,7 @@
         var audio = document.getElementById('card-audio');
         audio.removeAttribute('src');
         audio.removeAttribute('data-audio-zh');
-        if (it.audio_zh) audio.setAttribute('data-audio-zh', '/media/' + it.audio_zh);
+        if (it.audio_zh) audio.setAttribute('data-audio-zh', it.audio_zh);
     }
 
     window.cardPrev = function() { current = current > 0 ? current-1 : window.cardItems.length-1; render(); markCardViewed(); };
@@ -116,9 +126,7 @@
         if (!audio) return;
         var it = window.cardItems[current];
         if (!it) return;
-        var src = it['audio_' + type];
-        if (!src) return;
-        audio.src = '/media/' + src;
+        audio.src = it['audio_' + type];
         audio.load();
         audio.play().catch(function(e) {
             console.log('Audio play error:', e);
@@ -143,7 +151,6 @@
     };
     window.closeZoom = function(e) {
         var el = e.target;
-        // Close when clicking overlay bg, close btn, tip text, wrapper, or image at default zoom
         if (el === e.currentTarget || el.classList.contains('fs-close') || el.classList.contains('fs-tip') || el.classList.contains('fs-zoom-wrap') || (el.tagName === 'IMG' && zoomScale <= 1 && zoomBaseX === 0 && zoomBaseY === 0)) {
             document.getElementById('card-fs-overlay').classList.remove('show');
         }
