@@ -32,6 +32,8 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Django check
+        env:
+          DJANGO_DEBUG: "1"
         run: python manage.py check
 
   build:
