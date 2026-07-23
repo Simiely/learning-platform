@@ -33,7 +33,7 @@ jobs:
 
       - name: Django check
         env:
-          DJANGO_DEBUG: "1"
+          DJANGO_DEBUG: "true"
         run: python manage.py check
 
   build:
