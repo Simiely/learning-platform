@@ -25,7 +25,10 @@ python manage.py shell -c \
   && python manage.py seed_data \
   || echo "    Data already present, skipping seed_data."
 
-echo "==> [5/6] Ensuring default superuser"
+echo "==> [5/7] Syncing image positions from seed_data"
+python manage.py sync_positions
+
+echo "==> [6/7] Ensuring default superuser"
 python manage.py shell -c "
 import os
 from django.contrib.auth.models import User
@@ -39,7 +42,7 @@ else:
     print('    superuser already present or not configured, skipping.')
 "
 
-echo "==> [6/6] Starting gunicorn"
+echo "==> [7/7] Starting gunicorn"
 exec gunicorn config.wsgi:application \
   --bind 0.0.0.0:8000 \
   --workers 2 \
