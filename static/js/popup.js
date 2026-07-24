@@ -14,7 +14,7 @@ function playCorrectSound() {
             var gain = ctx.createGain();
             osc.type = 'sine';
             osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0.3, now + i * 0.12);
+            gain.gain.setValueAtTime(0.095, now + i * 0.12);
             gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.12 + 0.2);
             osc.connect(gain);
             gain.connect(ctx.destination);
