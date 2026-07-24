@@ -34,6 +34,12 @@ for _fp in [
         _EMOJI_FONT_PATH = _fp
         break
 
+if not _EMOJI_FONT_PATH:
+    import logging
+    logging.getLogger(__name__).warning(
+        "No emoji font found in standard paths; emoji colors will use hash-based fallback"
+    )
+
 
 def detect_image_center(image_path: str) -> Optional[str]:
     """Detect visual focus centre using saliency detection first,
@@ -65,8 +71,11 @@ def detect_image_center(image_path: str) -> Optional[str]:
                 xs = np.arange(w, dtype=np.float32).reshape(1, -1)
                 cy = float((sal_f * ys).sum()) / total
                 cx = float((sal_f * xs).sum()) / total
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Saliency detection failed for %s: %s", img_path, e
+            )
 
         # Step 2: Edge-weighted centroid fallback
         if cx is None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -10,11 +12,27 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from apps.core.models import Category, QuizAttempt
 
 
+def _login_rate_limit(request, action: str) -> bool:
+    """Simple session-based rate limit: max 5 attempts per 15 minutes."""
+    session_key = f"rate_{action}"
+    now = time.time()
+    data = request.session.get(session_key, {"count": 0, "first": now})
+    if now - data["first"] > 900:  # 15 minutes
+        data = {"count": 0, "first": now}
+    data["count"] += 1
+    request.session[session_key] = data
+    return data["count"] > 5
+
+
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('index')
 
     if request.method == 'POST':
+        if _login_rate_limit(request, 'register'):
+            messages.error(request, '注册太频繁了，请15分钟后再试。')
+            return render(request, 'register.html')
+
         username = request.POST.get('username', '').strip()
         password1 = request.POST.get('password1', '').strip()
         password2 = request.POST.get('password2', '').strip()
@@ -41,6 +59,10 @@ def login_view(request):
         return redirect("index")
 
     if request.method == "POST":
+        if _login_rate_limit(request, 'login'):
+            messages.error(request, '登录尝试太多次了，请15分钟后再试。')
+            return render(request, "login.html")
+
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "").strip()
 

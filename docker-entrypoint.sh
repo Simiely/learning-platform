@@ -7,7 +7,7 @@
 #   5. create a default superuser (if env provided)
 #   6. launch gunicorn
 
-set -u
+set -eu
 
 echo "==> [1/6] Collecting static files"
 python manage.py collectstatic --noinput

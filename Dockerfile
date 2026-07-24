@@ -24,6 +24,10 @@ RUN cp -r /app/media /app/media-bundled
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
+# Run as non-root for security
+RUN useradd -m app && chown -R app:app /app
+USER app
+
 EXPOSE 8000
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

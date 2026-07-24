@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Count
 from .models import Category, Item, LearningProgress, QuizAttempt
 
 
@@ -14,6 +15,14 @@ class CategoryAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
     inlines = [ItemInline]
     search_fields = ('name',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_item_count=Count('items'))
+
+    def item_count(self, obj):
+        return obj._item_count
+    item_count.admin_order_field = '_item_count'
+    item_count.short_description = 'Items'
 
 
 @admin.register(Item)

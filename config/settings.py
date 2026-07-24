@@ -8,7 +8,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     if os.environ.get("DJANGO_DEBUG", "False").lower() == "true":
-        SECRET_KEY = "django-insecure-dev-only-not-for-production-abc123"
+        from django.core.management.utils import get_random_secret_key
+        SECRET_KEY = get_random_secret_key()
     else:
         raise ImproperlyConfigured(
             "DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is not True"
@@ -70,7 +71,10 @@ DATABASES = {
 os.makedirs(os.path.dirname(str(DATABASES['default']['NAME'])), exist_ok=True)
 
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 6}},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 LANGUAGE_CODE = 'zh-hans'

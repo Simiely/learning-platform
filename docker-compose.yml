@@ -8,10 +8,11 @@ services:
     ports:
       - "2511:8000"
     environment:
-      # DEBUG=True 让 Django 自动托管 /media/ 与 /static/（家庭/局域网 iPad 用）
-      - DJANGO_DEBUG=True
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-change-this-in-production}
-      - DJANGO_ALLOWED_HOSTS=*
+      # 局域网部署：DEBUG 打开以便 Django 自动托管 /media/ /static/
+      # 公网部署应设为 false 并配合 nginx 反向代理
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-true}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:?set DJANGO_SECRET_KEY in .env or environment}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-*}
       # 媒体素材来源（含顶层 media/ 目录的 tar.gz）
       - MEDIA_SOURCE_URL=https://codeload.github.com/Simiely/learning-platform/tar.gz/refs/heads/master
       # 初始管理员账号（仅首次启动创建）—— 请通过 .env 文件或环境变量设置密码

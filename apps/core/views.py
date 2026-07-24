@@ -75,7 +75,7 @@ def item_detail_api(request: Any, item_id: int) -> JsonResponse:
             defaults={"learned": True, "view_count": 1},
         )
         if not created:
-            progress.view_count = models.F("view_count") + 1
+            progress.view_count = F("view_count") + 1
             progress.learned = True
             progress.save(update_fields=["view_count", "learned"])
     return JsonResponse(item.to_dict())
@@ -99,11 +99,10 @@ def mark_viewed(request: Any, item_id: int) -> JsonResponse:
                 item=item,
                 defaults={"learned": True, "view_count": 1},
             )
-        if not created:
-            progress.view_count = F("view_count") + 1
-            progress.learned = True
-            progress.save(update_fields=["view_count", "learned"])
-            return JsonResponse({"status": "ok", "view_count": progress.view_count})
+            if not created:
+                progress.view_count = F("view_count") + 1
+                progress.learned = True
+                progress.save(update_fields=["view_count", "learned"])
         return JsonResponse({"status": "ok"})
     return JsonResponse({"status": "error"}, status=400)
 
