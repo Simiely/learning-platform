@@ -85,7 +85,8 @@ position: absolute; top: 10px; opacity: 0.5; pointer-events: none;
 
 ### 种子数据（seed_data）
 
-- `ANIMALS` 表格包含 21 只动物的完整数据：中英名、emoji、图片、科普知识、三语音频、手动校准的 `image_position`
+- `ANIMALS` 表格包含 **41 只动物**的完整数据：中英名、emoji、图片、科普知识、三语音频、iPhone 焦点 + iPad 焦点
+- 每行 8 字段：`(name, en_name, emoji, img_file, audio_file, fact, image_position, image_position_ipad)`
 - `seed_data --force` 覆盖已有数据；不加 `--force` 时检测到已有数据则跳过
 - `image_position_checked=True` 防止 `detect_centers` 覆盖手调值
 
@@ -116,6 +117,32 @@ position: absolute; top: 10px; opacity: 0.5; pointer-events: none;
 `FileField.save` 在目标文件已存在时自动追加 `_<7位随机>` 后缀 → DB 与磁盘文件名不一致。
 
 **修复**：`seed_data.py` 改用 `_write_media_file()` 直接以规范纯名覆盖写入，清理随机后缀孤儿。
+
+### gTTS 代理问题 → 改用 edge-tts（2026-07-24）
+
+**问题**：沙箱网络走代理 `127.0.0.1:7890`，gTTS（Google Text-to-Speech）请求 Google 翻译 API 被代理拦截，连续超时。
+
+**排查过程**：
+1. 不设代理 → DNS 解析失败（沙箱无直连外网权限）
+2. 设代理 → 部分请求能通但极不稳定，批量 20 只动物跑几分钟后随机断开
+3. 尝试 `HTTP_PROXY` / `HTTPS_PROXY` 环境变量全部无效
+
+**修复**：改用 **edge-tts**（Microsoft Edge 内置神经网络语音，调用 `cognitive.microsoft.com`）：
+```python
+import asyncio
+from edge_tts import Communicate
+
+async def gen():
+    await Communicate('考拉', voice='zh-CN-XiaoxiaoNeural').save('audio/koala.mp3')
+    await Communicate('Koala', voice='en-US-JennyNeural').save('audio_en/koala.mp3')
+asyncio.run(gen())
+```
+- 不走 Google，代理可通，稳定快速
+- 中文：`zh-CN-XiaoxiaoNeural`（自然女声）
+- 英文：`en-US-JennyNeural`（美式女声）
+- `pip install edge-tts` 即可使用
+
+**教训**：沙箱环境优先使用不依赖 Google 的 TTS。edge-tts 走 Azure 流，对代理友好。
 
 ### iOS 进场自动播放被拦截
 
@@ -238,5 +265,106 @@ viewport meta 加 `user-scalable=no`，阻止浏览器默认双击缩放。
 
 ### 动物数据清单（2026-07-23）
 
-`ANIMALS.md` 是所有动物数据的主数据源（21 已上线 + 20 待补充）。
+`ANIMALS.md` 是所有动物数据的主数据源（21 已上线 + 20 新增 = 共 41 只）。
 修改动物内容（增减、科普、焦点）先编辑这个文件，再同步到 `seed_data.py`。
+
+**焦点调整工作流**（2026-07-24 优化）：
+- 所有焦点都是基于中心 `50% 50%` 的相对偏移
+- 修改 `seed_data.py` → `python manage.py seed_data --force` 刷新数据库
+- 服务不需要重启，刷新前端页面即可
+
+### iPad / iPhone 双套图片焦点（2026-07-24）
+
+**需求**：iPad 横/竖屏和 iPhone 竖屏的图片构图不同，需要各自独立的视觉焦点。
+
+**实现**：
+1. **模型** `Item` 新增 `image_position_ipad` 字段（`CharField, default='50% 50%'`）
+2. **迁移** `0009_item_image_position_ipad`（makemigrations → migrate）
+3. **API** `to_dict()` 和 `quiz_question_api()` 同时返回 `image_position` 和 `image_position_ipad`
+4. **seed_data** 每个动物增加第 8 个参数（默认为 iPhone 焦点值）
+5. **ANIMALS.md** 新增「焦点(iPad)」列
+
+**注意**：前端尚未实现 iPad 检测切换。后期只需一行 JS `screenWidth >= 768` 选择对应字段即可。
+
+### 中文文件名 → 英文重命名（2026-07-24）
+
+**问题**：Windows 下用户拖入的文件名是中文（如 `北极熊.jpg`），需要批量改成英文。
+
+**教训**：
+- 不能用 Bash 的 `mv`（UTF-8 over Git Bash 处理中文文件名编码混乱）
+- Bash 的 `rename` 命令不可用（需 Linux 的 util-linux 版本）
+- **必须用 PowerShell**：
+  ```powershell
+  Rename-Item "北极熊.jpg" "polarbear.jpg"
+  ```
+  PowerShell 原生支持 Unicode 路径名，不会编码损坏。
+
+### 新增 20 只动物的批量工作流（2026-07-24）
+
+完整记录了一次批量添加 20 只动物的端到端流程：
+
+**阶段 1：图片素材**
+1. 从 Pexels 搜索页（`pexels.com/search/<animal>/`）批量提取 photo ID
+2. 用 Python 下载 400px 缩略图到 `candidates/`
+3. 用户逐个挑选，有时需要换搜索词（如蛇：不要特写 → 普通搜索）
+4. 确定后下载高清原图（不 `?w=` 参数 = 原始分辨率）
+5. 保存到 `media/images/`，清理 `candidates/`
+
+**阶段 2：音频生成**
+1. 安装 `edge-tts`（pip install edge-tts）
+2. 异步批量生成 `audio/`（中文名）、`audio_en/`（英文名）、`audio_fact/`（科普）
+3. 约 1-2 秒/个，20 只 × 3 = 60 个文件约 2 分钟
+
+**阶段 3：数据整合**
+1. `ANIMALS.md` 新增 20 行，标记 ✅
+2. `seed_data.py` 追加 20 条元组
+3. `python manage.py seed_data --force` 写入数据库
+4. 手动校准图片焦点（用户反馈 → 调整值 → 重跑 seed_data）
+
+**阶段 4：清理**
+- 删除 `new-animals/` 临时目录
+- 删除 `candidates/` 缩略图
+- 删除调试脚本（`gen_audio.py` 等）
+
+### 新增动物图片素材下载工作流（2026-07-24）
+
+**流程**：缩略图挑选 → 用户选择 → 高清下载 → 入仓
+
+1. **批量下载缩略图**（Pexels / Pixabay，免费商用）
+
+   - 搜索关键词用**纯英文**（如 `polar-bear` 而非 `北极熊`）
+   - 从 Pexels 搜索结果页 HTML 提取 photo ID（需 User-Agent 伪装）
+   - 下载 400px 缩略图到 `new-animals/images/candidates/`
+
+   ```python
+   # Pexels 直接访问图片 CDN 不需要搜索页权限
+   # 通过已知 photo ID 下载缩略图
+   import urllib.request, ssl, io, os
+   from PIL import Image
+   ctx = ssl.create_default_context()
+   ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+   handler = urllib.request.ProxyHandler({'https': 'http://127.0.0.1:7890'})
+   opener = urllib.request.build_opener(handler, urllib.request.HTTPSHandler(context=ctx))
+
+   for pid in photo_ids:
+       url = f'https://images.pexels.com/photos/{pid}/pexels-photo-{pid}.jpeg?auto=compress&cs=tinysrgb&w=400'
+       req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+       resp = opener.open(req, timeout=10)
+       img = Image.open(io.BytesIO(resp.read()))
+       img.save(f'new-animals/images/candidates/{label}.jpg')
+   ```
+
+2. **用户挑选后下载高清原图**
+   ```python
+   url = f'https://images.pexels.com/photos/{photo_id}/pexels-photo-{photo_id}.jpeg'
+   # 不加 w 参数 = 原始分辨率
+   ```
+
+3. **裁剪正方形 + 长边 ≥ 3000px**
+
+4. **清理候选项**
+
+**注意**：
+- Pexels 搜索页会 403，但图片 CDN（`images.pexels.com`）可以直接访问
+- 沙箱网络问题用调试 Python：`C:\Users\2504\.workbuddy\binaries\python\versions\3.13.12\python.exe` + ProxyHandler
+- 关键词必须英文，Pexels URL 用连字符（`polar-bear`）

@@ -52,6 +52,10 @@ class Item(models.Model):
         default=False, verbose_name='焦点已检测',
         help_text='是否已经自动检测过图片视觉中心'
     )
+    image_position_ipad = models.CharField(
+        max_length=30, blank=True, default='50% 50%',
+        verbose_name='iPad 图片焦点', help_text='iPad 专用图片焦点, CSS object-position 格式'
+    )
     audio = models.FileField(
         upload_to='audio/', blank=True, null=True,
         verbose_name='中文语音'
@@ -84,6 +88,7 @@ class Item(models.Model):
             "fact": self.fact,
             "image": self.image.url if self.image else "",
             "image_position": self.image_position or "50% 50%",
+            "image_position_ipad": self.image_position_ipad or "50% 50%",
             "audio_zh": self.audio.url if self.audio else "",
             "audio_en": self.audio_en.url if self.audio_en else "",
             "audio_fact": self.audio_fact.url if self.audio_fact else "",

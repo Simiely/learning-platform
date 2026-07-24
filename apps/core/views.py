@@ -178,6 +178,7 @@ def quiz_question_api(request: Any, slug: str) -> JsonResponse:
         "correct_name": correct.name,
         "image_url": correct.image.url if correct.image else None,
         "image_position": correct.image_position or "50% 50%",
+        "image_position_ipad": correct.image_position_ipad or "50% 50%",
         "emoji": correct.emoji,
         "audio_zh": correct.audio.url if correct.audio else "",
         "audio_en": correct.audio_en.url if correct.audio_en else "",
