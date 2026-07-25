@@ -41,14 +41,15 @@ class Command(BaseCommand):
         created = 0
         updated = 0
 
-        for idx, (name, code, en_name, emoji, img_file, audio_file, fact, img_pos, img_pos_ipad) in enumerate(ANIMALS):
+        for idx, (name, code, en_name, emoji, img_file, audio_file, fact, img_pos, img_pos_ipad_portrait, img_pos_ipad_landscape) in enumerate(ANIMALS):
             defaults = {
                 "name": name,
                 "english_name": en_name,
                 "emoji": emoji,
                 "fact": fact,
                 "image_position": img_pos or "50% 50%",
-                "image_position_ipad": img_pos_ipad or "50% 50%",
+                "image_position_ipad_portrait": img_pos_ipad_portrait or "50% 50%",
+                "image_position_ipad_landscape": img_pos_ipad_landscape or "50% 50%",
                 "sort_order": idx,
                 "image_position_checked": True,
             }
