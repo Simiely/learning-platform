@@ -33,7 +33,15 @@ python manage.py shell -c \
   || echo "    Data already present, skipping seed_data."
 
 echo "==> [5/7] Syncing image positions from seed_data"
-python manage.py sync_positions
+# Non-fatal: sync_positions failure should NOT prevent gunicorn from starting.
+# Wrap in set +e / set -e so we always reach gunicorn even if this step fails.
+set +e
+python manage.py sync_positions 2>&1
+SYNC_EXIT=$?
+set -e
+if [ $SYNC_EXIT -ne 0 ]; then
+    echo "    WARNING: sync_positions failed (exit $SYNC_EXIT), container will still start."
+fi
 
 echo "==> [6/7] Ensuring default superuser"
 python manage.py shell -c "
