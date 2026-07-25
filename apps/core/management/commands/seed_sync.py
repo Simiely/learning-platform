@@ -41,8 +41,9 @@ class Command(BaseCommand):
         created = 0
         updated = 0
 
-        for idx, (name, en_name, emoji, img_file, audio_file, fact, img_pos, img_pos_ipad) in enumerate(ANIMALS):
+        for idx, (code, name, en_name, emoji, img_file, audio_file, fact, img_pos, img_pos_ipad) in enumerate(ANIMALS):
             defaults = {
+                "name": name,
                 "english_name": en_name,
                 "emoji": emoji,
                 "fact": fact,
@@ -53,7 +54,7 @@ class Command(BaseCommand):
             }
 
             item, is_new = Item.objects.update_or_create(
-                category=cat, name=name, defaults=defaults
+                category=cat, code=code, defaults=defaults
             )
 
             # Only write media files for NEW items to avoid unnecessary overwrites

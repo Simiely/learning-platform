@@ -36,6 +36,11 @@ class Item(models.Model):
         related_name='items', verbose_name='所属模块'
     )
     name = models.CharField(max_length=200, verbose_name='名称')
+    code = models.CharField(
+        max_length=50, blank=True, default='', unique=True,
+        verbose_name='唯一标识',
+        help_text='英文小写+日期序号，如 polar_bear_2026072401。改名不影响匹配。'
+    )
     english_name = models.CharField(max_length=200, blank=True, default='', verbose_name='英文名称')
     emoji = models.CharField(max_length=50, blank=True, default='', verbose_name='表情符号')
     fact = models.TextField(blank=True, default='', verbose_name='科普知识',

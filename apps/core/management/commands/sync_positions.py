@@ -15,11 +15,11 @@ class Command(BaseCommand):
         updated = 0
         missing = []
 
-        for name, english_name, emoji, img_file, audio_file, fact, img_pos, *_ in ANIMALS:
+        for code, name, english_name, emoji, img_file, audio_file, fact, img_pos, img_pos_ipad in ANIMALS:
             try:
-                item = Item.objects.get(name=name)
+                item = Item.objects.get(code=code)
             except Item.DoesNotExist:
-                missing.append(name)
+                missing.append(f"{name}({code})")
                 continue
 
             if img_pos and item.image_position != img_pos:
