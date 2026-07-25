@@ -508,3 +508,67 @@ body {
 - 永远不要单独依赖 `100vh` 做 iOS 布局，用 `var(--vh, 1vh)` 做渐进增强
 - `min-height: 100dvh` 是现代方案（iOS 15.4+），但老旧设备仍需 JS 降级
 - `viewport-fit=cover` 对 iPad 全屏应用有帮助
+
+---
+
+## 全站 iPad 焦点检测（2026-07-25）
+
+### 问题
+
+三套焦点数据（iPhone / iPad 竖 / iPad 横）已入库，但前端始终读取 `image_position`（iPhone 值），iPad 焦点调整在页面上看不到效果。
+
+### 检测逻辑
+
+iPad 检测用 `screen.width >= 768`（物理像素，iPad 横屏 1366 / 竖屏 1024）：
+
+```javascript
+function getImagePos(it) {
+    if (screen.width >= 768) {
+        return (window.innerWidth > window.innerHeight)
+            ? it.image_position_ipad_landscape || '50% 50%'
+            : it.image_position_ipad_portrait || '50% 50%';
+    }
+    return it.image_position || '50% 50%';
+}
+```
+
+### 涉及页面
+
+| 页面 | 修改方式 |
+|------|---------|
+| 卡片模式 | 新增 `getImagePos()` 函数，替�� `centerPos()` 参数 |
+| 练习模式 | Alpine 获取题目后，JS 替换 `currentQuestion.image_position` |
+| 浏览弹窗 | 加载数据时判断设备，选对应焦点字段 |
+
+### 教训
+
+- `window.innerWidth` 在 iPad 竖屏常被夹到 ~375px（手机比例），不可靠；**必须用 `screen.width`**
+- Alpine 的 `:style` 绑定不能调用复杂嵌套函数 → 在 JS 数据初始化阶段预处理
+
+---
+
+## 图片缩放拖拽（2026-07-25）
+
+### 实现
+
+放大后支持拖拽平移，组合 `translate + scale`：
+
+```javascript
+clone.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+```
+
+- 鼠标拖拽 → `mousedown/mousemove/mouseup` 计算偏移
+- 单指拖拽 → `touchstart/touchmove/touchend`
+- 双击 → 重置 `scale=1, tx=0, ty=0`
+- 缩放回到 1 时自动归位置零
+
+### 关闭大图的兼容
+
+`<div onclick="closeZoom(event)">` 内部有 `.fs-zoom-wrap`（撑满全屏）和 `.fs-tip`，点击"空白"实际命中 wrap 而非 overlay。
+
+修复：关闭判断扩展为匹配 `fs-zoom-wrap`、`fs-tip`、`fs-close`、overlay 自身 ID。
+
+### 教训
+
+- `e.target === e.currentTarget` 对内部有子元素全屏覆盖的场景不可靠
+- 用子元素 ID / class 显式匹配比层级委托更可控
