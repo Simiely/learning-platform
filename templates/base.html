@@ -2,7 +2,23 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script>
+        // Fix iOS Safari 100vh bug + bfcache restore
+        function setViewportHeight() {
+            var vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', vh + 'px');
+        }
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', function () {
+            setTimeout(setViewportHeight, 100);
+        });
+        // bfcache restore: Safari fires pageshow.persisted when restoring from cache
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) setViewportHeight();
+        });
+    </script>
     <title>{% block title %}学习卡片{% endblock %}</title>
     {% load static %}
     <script src="{% static 'js/theme.js' %}"></script>
