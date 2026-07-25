@@ -13,6 +13,9 @@ echo "==> [1/6] Collecting static files"
 python manage.py collectstatic --noinput
 
 echo "==> [2/6] Running database migrations"
+# Host-mounted db/ may have wrong owner for the non-root 'app' user.
+# Fix permissions before any DB write to avoid "readonly database" error.
+chmod -R a+w /app/db/ 2>/dev/null || true
 python manage.py migrate --noinput
 
 echo "==> [3/7] Syncing media from bundled image copy"
