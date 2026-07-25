@@ -58,6 +58,14 @@
 <script>
 (function() {
     window.cardItems = {{ items_json|safe }};
+    function getImagePos(it) {
+        if (screen.width >= 768) {
+            return (window.innerWidth > window.innerHeight)
+                ? (it.image_position_ipad_landscape || '50% 50%')
+                : (it.image_position_ipad_portrait || '50% 50%');
+        }
+        return it.image_position || '50% 50%';
+    }
     function centerPos(pos) {
         // Image center detection tends to find the whole-animal centroid,
         // but animal faces are usually in the upper portion.
@@ -88,7 +96,7 @@
         if (it.image) {
             img.src = it.image;
             img.style.objectFit = 'cover';
-            var pos = centerPos(it.image_position);
+            var pos = centerPos(getImagePos(it));
             img.style.objectPosition = pos;
             img.style.display = 'block';
             emoji.style.display = 'none';

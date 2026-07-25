@@ -107,6 +107,13 @@ function quizApp(cat, token) {
             this.isCorrect = false;
             var r = await fetch('/api/quiz/' + this.categorySlug + '/question/?type=image_to_name');
             this.currentQuestion = await r.json();
+            // iPad detection: switch to device-appropriate image position
+            var q = this.currentQuestion;
+            if (screen.width >= 768) {
+                q.image_position = (window.innerWidth > window.innerHeight)
+                    ? (q.image_position_ipad_landscape || '50% 50%')
+                    : (q.image_position_ipad_portrait || '50% 50%');
+            }
         },
 
         selectAnswer(id) {
