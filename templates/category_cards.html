@@ -88,13 +88,11 @@
         if (it.image) {
             var pos = centerPos(it.image_position);
             img.style.objectFit = 'cover';
-            img.style.objectPosition = '50% 50%';  // reset while loading
-            img.style.opacity = '0.3';
-            img.style.transition = 'opacity .12s';
+            // Defer position until image loads to prevent old-image jump
             img.onload = function onCardImgLoad() {
                 img.style.objectPosition = pos;
-                img.style.opacity = '1';
             };
+            img.style.objectPosition = '50% 50%';
             img.src = it.image;
             img.style.display = 'block';
             emoji.style.display = 'none';
