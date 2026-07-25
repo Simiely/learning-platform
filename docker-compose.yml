@@ -5,6 +5,10 @@ services:
     # 并在 build-push.sh 里用 Docker Hub 账号 docker login 即可。
     image: ghcr.io/simiely/learning-platform:latest
     container_name: learning-platform
+    # Dockerfile 默认用非 root 用户 `app`，但 SQLite 在 host mount 下会因
+    # 权限不匹配报 "attempt to write a readonly database"。
+    # 家庭内网部署用 root 运行最简单可靠。
+    user: root
     ports:
       - "2511:8000"
     environment:
@@ -19,6 +23,8 @@ services:
       - DJANGO_SUPERUSER_USERNAME=${ADMIN_USERNAME:-admin}
       - DJANGO_SUPERUSER_EMAIL=${ADMIN_EMAIL:-admin@example.com}
       - DJANGO_SUPERUSER_PASSWORD=${ADMIN_PASSWORD:-admin1234}
+      # 设为 1 时强制重建动物数据（新增动物后使用，执行完改回 0）
+      - SEED_FORCE=1
     volumes:
       # 数据位置（绑定挂载，持久化）：db + media，首次运行由 Docker 自动创建
       - /mnt/usb2/Configs/learning-platform/data/db:/app/db
