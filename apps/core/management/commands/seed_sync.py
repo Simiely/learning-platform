@@ -35,7 +35,7 @@ class Command(BaseCommand):
 
         cat, _ = Category.objects.get_or_create(
             slug="animals",
-            defaults={"name": "动物", "icon": "animals", "sort_order": 0},
+            defaults={"name": "动物", "icon": "🐾", "sort_order": 0},
         )
 
         created = 0
