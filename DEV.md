@@ -624,3 +624,90 @@ this.currentQuestion.image_position = (screen.width >= 768)
 
 - Alpine 中修改嵌套对象属性必须通过代理路径：`this.currentQuestion.image_position = ...` ✅ | `var q = this.currentQuestion; q.image_position = ...` ❌
 - 读取数据可以用局部变量，**写入必须走 this**
+
+---
+
+## AI 快速排错清单
+
+开发时遇到问题，按以下顺序排查：
+
+### 1. 页面白屏 / 卡片模式不工作
+
+```bash
+# 确认服务在跑
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/
+# 确认模板编译无错
+python manage.py shell -c "from django.template.loader import get_template; get_template('category_cards.html'); print('OK')"
+# 检查 JS 语法：F12 Console 看红色报错
+```
+
+常见原因：
+- JS 缺少分号 → `(intermediate value)(...) is not a function`
+- IIFE 前无 `;` → 后续所有代码不执行
+- Alpine:data 中 `this.xxx = ...` 写成 `var q = this.xxx; q.yyy = ...`
+
+### 2. 图片不显示
+
+```
+# 检查图片是否存在
+python -c "from apps.core.models import Item; [print(i.name, i.image) for i in Item.objects.all()[:3]]"
+# 检查 JSON 数据
+curl -s http://localhost:8000/category/animals/cards/ | grep -o '"image":"[^"]*"' | head -3
+# 检查图片 URL
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/media/images/lion.jpg
+```
+
+### 3. 焦点调整不生效
+
+```
+# 确认 seed_data.py 改对了
+python -c "
+import ast
+with open('apps/core/management/commands/seed_data.py') as f:
+    tree = ast.parse(f.read())
+# 检查对应动物的三组值
+"
+# 确认数据库已同步
+python manage.py shell -c "
+from apps.core.models import Item
+i = Item.objects.get(code='hippo_2026072405')
+print(i.image_position, i.image_position_ipad_portrait, i.image_position_ipad_landscape)
+"
+# 确认前端接了 iPad 检测（三个页面都要检查）
+grep -l "getImagePos\|image_position_ipad\|screen.width >= 768" templates/*.html
+```
+
+### 4. Docker 部署异常
+
+```bash
+# 检查容器日志
+docker compose logs learning-platform
+# 确认 seed_sync 执行
+docker compose exec learning-platform python manage.py shell -c "from apps.core.models import Item; print(Item.objects.count())"
+# 应该输出 41
+```
+
+### 5. 本地开发环境
+
+```bash
+# 推荐运行命令
+cd learning-platform
+.venv/Scripts/python.exe manage.py runserver localhost:8000
+# 改完 seed_data.py 后
+.venv/Scripts/python.exe manage.py seed_sync
+# 无需重启，Django dev server 自动重载
+```
+
+### 6. Git 推送失败（代理问题）
+
+```bash
+# 沙箱网络通过代理 127.0.0.1:7890
+GIT_SSL_NO_VERIFY=1 git -c http.proxy=http://127.0.0.1:7890 -c https.proxy=http://127.0.0.1:7890 -c http.sslVerify=false push origin master
+# TLS 连接错误时重试（代理偶发波动）
+```
+
+### 7. 页面布局塌缩
+
+- Safari: body 不要 `display:flex` + `min-height` 同时用
+- 卡片/练习: `.container-card` 保持 `height: calc(100vh - 52px)`
+- 所有全屏页面: `.mode-bar { flex: none }` + 内容区 `flex: 1; min-height: 0; overflow: hidden`
