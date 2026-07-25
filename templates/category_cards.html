@@ -152,7 +152,10 @@
         fs.classList.add('show');
     };
     window.closeZoom = function(e) {
-        if (e.target === e.currentTarget || e.target.classList.contains('fs-close')) {
+        // Close on overlay bg, wrap area, tip, or close button (not on the image itself)
+        var t = e.target;
+        if (t.classList.contains('fs-close') || t.id === 'card-fs-overlay'
+            || t.id === 'fs-zoom-wrap' || t.classList.contains('fs-tip')) {
             document.getElementById('card-fs-overlay').classList.remove('show');
         }
     };
@@ -228,7 +231,9 @@
         // Reset on close
         var overlay = document.getElementById('card-fs-overlay');
         overlay.addEventListener('click', function(e) {
-            if (e.target === e.currentTarget || e.target.classList.contains('fs-close')) {
+            var t = e.target;
+            if (t.classList.contains('fs-close') || t.id === 'card-fs-overlay'
+                || t.id === 'fs-zoom-wrap' || t.classList.contains('fs-tip')) {
                 resetAll(); clone.style.cursor = 'grab';
             }
         });

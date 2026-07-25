@@ -141,7 +141,9 @@
     };
 
     window.closeBrowseZoom = function(e) {
-        if (e.target === e.currentTarget || e.target.classList.contains('fs-close')) {
+        var t = e.target;
+        if (t.classList.contains('fs-close') || t.id === 'browse-fs-overlay'
+            || t.id === 'browse-fs-zoom-wrap' || t.classList.contains('fs-tip')) {
             document.getElementById('browse-fs-overlay').classList.remove('show');
         }
     };
@@ -201,7 +203,9 @@
 
         var overlay = document.getElementById('browse-fs-overlay');
         overlay.addEventListener('click', function(e) {
-            if (e.target === e.currentTarget || e.target.classList.contains('fs-close')) {
+            var t = e.target;
+            if (t.classList.contains('fs-close') || t.id === 'browse-fs-overlay'
+                || t.id === 'browse-fs-zoom-wrap' || t.classList.contains('fs-tip')) {
                 resetAll(); clone.style.cursor = 'grab';
             }
         });
