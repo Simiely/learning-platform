@@ -156,17 +156,26 @@
             document.getElementById('card-fs-overlay').classList.remove('show');
         }
     };
-    // ---- Zoom: wheel + pinch ----
+    // ---- Zoom: wheel + pinch + drag ----
     (function initZoom() {
         var scale = 1, minScale = 1, maxScale = 5;
+        var tx = 0, ty = 0;
         var clone = document.getElementById('fs-img-clone');
         var wrap = document.getElementById('fs-zoom-wrap');
-        function applyScale() { clone.style.transform = 'scale(' + scale + ')'; }
+        function applyTransform() {
+            clone.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+        }
+        function resetAll() { scale = 1; tx = 0; ty = 0; applyTransform(); }
+
+        // Wheel zoom
         wrap.addEventListener('wheel', function(e) {
             e.preventDefault();
             scale = Math.min(maxScale, Math.max(minScale, scale + (e.deltaY > 0 ? -0.15 : 0.15)));
-            applyScale();
+            if (scale === 1) { tx = 0; ty = 0; }
+            applyTransform();
         }, { passive: false });
+
+        // Pinch zoom (touch)
         var initialDist = 0, initialScale = 1;
         wrap.addEventListener('touchstart', function(e) {
             if (e.touches.length === 2) {
@@ -177,10 +186,57 @@
         wrap.addEventListener('touchmove', function(e) {
             if (e.touches.length === 2 && initialDist > 0) {
                 scale = Math.min(maxScale, Math.max(minScale, initialScale * Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) / initialDist));
-                applyScale();
+                applyTransform();
             }
         });
-        clone.addEventListener('dblclick', function() { scale = 1; applyScale(); });
+
+        // Drag (mouse)
+        var dragging = false, dx = 0, dy = 0;
+        clone.addEventListener('mousedown', function(e) {
+            if (scale > 1) {
+                dragging = true; dx = e.clientX - tx; dy = e.clientY - ty;
+                clone.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+        window.addEventListener('mousemove', function(e) {
+            if (!dragging) return;
+            tx = e.clientX - dx; ty = e.clientY - dy;
+            applyTransform();
+        });
+        window.addEventListener('mouseup', function() {
+            if (dragging) { dragging = false; clone.style.cursor = scale > 1 ? 'grab' : 'zoom-in'; }
+        });
+
+        // Drag (touch — single finger)
+        wrap.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 1 && scale > 1) {
+                dragging = true; dx = e.touches[0].clientX - tx; dy = e.touches[0].clientY - ty;
+            }
+        });
+        wrap.addEventListener('touchmove', function(e) {
+            if (dragging && e.touches.length === 1 && scale > 1) {
+                tx = e.touches[0].clientX - dx; ty = e.touches[0].clientY - dy;
+                applyTransform();
+            }
+        });
+        wrap.addEventListener('touchend', function() { dragging = false; });
+
+        // Double-click to reset
+        clone.addEventListener('dblclick', function() { resetAll(); clone.style.cursor = 'grab'; });
+
+        // Reset on close
+        var overlay = document.getElementById('card-fs-overlay');
+        overlay.addEventListener('click', function(e) {
+            if (e.target === e.currentTarget || e.target.classList.contains('fs-close')) {
+                resetAll(); clone.style.cursor = 'grab';
+            }
+        });
+
+        // Update cursor when zoom changes via wheel
+        wrap.addEventListener('wheel', function() {
+            clone.style.cursor = scale > 1 ? 'grab' : 'zoom-in';
+        });
     })();
 
     // Initial render
