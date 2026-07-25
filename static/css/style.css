@@ -38,10 +38,6 @@ body {
     font-family: var(--font);
     background: var(--bg);
     color: var(--text);
-    min-height: 100vh;
-    min-height: calc(var(--vh, 1vh) * 100);
-    display: flex;
-    flex-direction: column;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     font-size: 15px;
@@ -609,7 +605,6 @@ body {
 .container.container-card {
     padding: 0 20px;
     height: calc(100vh - 52px);
-    height: calc(var(--vh, 1vh) * 100 - 52px);
     overflow: hidden;
     display: flex;
     flex-direction: column;
