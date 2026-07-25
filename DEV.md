@@ -368,3 +368,143 @@ viewport meta 加 `user-scalable=no`，阻止浏览器默认双击缩放。
 - Pexels 搜索页会 403，但图片 CDN（`images.pexels.com`）可以直接访问
 - 沙箱网络问题用调试 Python：`C:\Users\2504\.workbuddy\binaries\python\versions\3.13.12\python.exe` + ProxyHandler
 - 关键词必须英文，Pexels URL 用连字符（`polar-bear`）
+
+---
+
+## 数据安全 & 增量更新（2026-07-25）
+
+### 问题背景
+
+原有 `seed_data --force` 会删除全部数据重建，每次改动物信息（焦点、科普文字等）都要推倒重来。Docker 部署后用户进度丢失。
+
+### 解决方案：code 唯一标识 + seed_sync
+
+1. **模型层**：`Item` 新增 `code` 字段（格式 `english_lower_YYYYMMDDNN`，如 `polar_bear_2026072401`）
+   - `unique=True`，改名/换 emoji 不影响匹配
+   - 迁移 `0010_item_code` 用 `RunPython` 自动为已有动物生成 code
+
+2. **数据同步层**：新增 `seed_sync` 命令
+   - `update_or_create(category=cat, code=code, defaults={...})` — 用 code 做键
+   - 翻新已在数据库的 → 原地更新；seed_data 里新增的 → 自动创建
+   - **从不删除**已有数据
+
+3. **部署**：Docker entrypoint 末尾跑 `python manage.py seed_sync`，每次启动/更新自动同步
+
+### 教训
+
+- 数据表必须有一个不依赖用户输入的稳定唯一键（code），依赖汉字匹配会随改名失效
+- 元组解包顺序错误（`(code, name, ...)` vs `(name, code, ...)` 写反）导致中英文互换 → 数据库被污染
+- 用 `RunPython` 做数据迁移比纯 `AlterField` 更安全
+
+---
+
+## 三套图片焦点系统（2026-07-25）
+
+从 iPhone/iPad 双焦点升级为三焦点：
+
+| 字段 | 用途 |
+|------|------|
+| `image_position` | iPhone 竖屏 |
+| `image_position_ipad_portrait` | iPad 竖屏 |
+| `image_position_ipad_landscape` | iPad 横屏 |
+
+- 迁移 `0011` 用 `RenameField` 将旧 `image_position_ipad` → `image_position_ipad_portrait`，再 `AddField` 加横屏
+- `to_dict()` 和 API 同时返回三个字段
+- 前端后期用 `screen.width >= 768` + 方向检测选择对应值
+
+### 教训
+
+- Django 的 `RenameField` 是安全的（保留数据），但 seed_data.py 里的元组解包变量名必须同步更新
+- 修改 seed_data.py 的元组结构（增字段）用正则替换极容易出错（引号、逗号、多行对齐）→ 宁可用 Edit 工具逐个改
+
+---
+
+## JavaScript IIFE 缺少分号导致全部 JS 崩溃（2026-07-25）
+
+### 现象
+
+卡片模式完全不工作：图片不显示（只显示 emoji），翻卡、缩放全部失效。F12 Console：
+
+```
+Uncaught TypeError: (intermediate value)(...) is not a function
+```
+
+### 根因
+
+`closeZoom` 函数末尾的 `}` 后面**没有分号**，紧接着下一行是 zoom 的 IIFE：
+
+```javascript
+window.closeZoom = function(e) {
+    // ...
+}          // ← 缺少分号！
+(function initZoom() { ... })();
+```
+
+JS 解析器把 `} (function initZoom(){})()` 当成 `undefined(function(){})()`，抛出 TypeError。**这一行错误导致整个 script 标签的后续代码全部终止**，`render()` 永远不会执行。
+
+### 修复
+
+```javascript
+};     // ← 加分号
+(function initZoom() { ... })();
+```
+
+### 教训
+
+- IIFE 前必须确保上一语句已终止（`;` 不能省略）
+- 在 `<script>` 标签中，一个 JS 错误会阻止后面所有代码执行
+- `(intermediate value)(...) is not a function` 几乎总是缺少分号导致的 IIFE 解析错误
+
+---
+
+## iOS Safari 100vh Bug + bfcache 铺满失效（2026-07-25）
+
+### 现象
+
+iPad 竖屏浏览页面，第二次打开（从 bfcache 恢复）无法铺满屏幕，底部留白。旋转设备到横屏再转回竖屏后恢复正常。
+
+### 根因
+
+1. **iOS Safari 的 `100vh` 包含地址栏高度**，而地址栏的可见性会变化
+2. **Safari bfcache（前进/后退缓存）** 恢复页面时使用缓存的旧 `100vh` 计算值，与实际视口不匹配
+3. `.container` 的 `flex: 1` 在 `body` 非 flex 容器时无效
+
+### 修复
+
+三管齐下：
+
+**JS 端**（`base.html` `<head>` 中）：
+```javascript
+function setViewportHeight() {
+    var vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', vh + 'px');
+}
+setViewportHeight();
+window.addEventListener('resize', setViewportHeight);
+window.addEventListener('orientationchange', () => setTimeout(setViewportHeight, 100));
+window.addEventListener('pageshow', e => { if (e.persisted) setViewportHeight(); });
+```
+
+**CSS 端**（`style.css`）：
+```css
+body {
+    min-height: 100vh;                    /* 降级 */
+    min-height: calc(var(--vh, 1vh) * 100);  /* 真值 */
+    display: flex;
+    flex-direction: column;
+}
+.container-card {
+    height: calc(100vh - 52px);
+    height: calc(var(--vh, 1vh) * 100 - 52px);
+}
+```
+
+- `--vh` 由 JS 根据 `window.innerHeight` 实时计算
+- `orientationchange` 加 `setTimeout(100)` 是因为 iOS 会在旋转动画完成后才更新 innerHeight
+- `pageshow.persisted` 捕获 bfcache 恢复
+
+### 教训
+
+- 永远不要单独依赖 `100vh` 做 iOS 布局，用 `var(--vh, 1vh)` 做渐进增强
+- `min-height: 100dvh` 是现代方案（iOS 15.4+），但老旧设备仍需 JS 降级
+- `viewport-fit=cover` 对 iPad 全屏应用有帮助

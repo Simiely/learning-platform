@@ -10,7 +10,7 @@
 - **三语发音**：中文名称 / 英文名称 / 科普知识（中文），自动连播，每只动物独立音频
 - **智能配色**：浏览方块背景基于 emoji 平均色动态生成（Pillow + NumPy）
 - **三态主题**：深色 → 浅色 → 自动（跟随系统），偏好记忆到 localStorage
-- **图片焦点**：每张图片手动校准视觉中心，iPhone / iPad 两套独立焦点，动物脸部始终可见
+- **图片焦点**：每张图片手动校准视觉中心，iPhone / iPad 竖屏 / iPad 横屏三套独立焦点，动物脸部始终可见
 - **账号系统**：注册 / 登录 / 学习进度追踪（可选），未登录也能用全部功能
 
 ## 快速开始
@@ -37,14 +37,28 @@ python manage.py runserver 0.0.0.0:8000
 2. 点击中文 / 英文 / 科普文字行即可播放对应语音
 3. 右上角按钮切换主题：☀️ 深色 → 🌙 浅色 → 🌓 跟随系统
 4. 浏览模式「再来一次」重置已查看状态（未登录用 localStorage 记录）
+5. 修改动物数据（焦点、科普等）：编辑 `seed_data.py` → `python manage.py seed_sync`（增量更新，不删数据）
 
-## 技术栈
+## 部署 & 更新
+
+Docker 一行部署，数据持久化到宿主机卷。**安全更新**不会丢失用户进度：
+
+```bash
+# 首次部署
+docker compose up -d
+
+# 更新代码后（Dpanel / 手动）
+docker compose pull && docker compose up -d
+# 容器自动 migrate + seed_sync，只增不改
+```
+
+> 如果数据库被污染需要重建：`rm data/db/db.sqlite3` 后重启容器。
 
 | 层级 | 技术 |
 |------|------|
 | 后端 | Django 4.2.x, Python 3.12+ |
 | 前端 | Alpine.js 3.14（本地托管，不用 CDN）, 原生 CSS（CSS Variables） |
-| 数据库 | SQLite（单文件，便于部署） |
+| 数据库 | SQLite（单文件，Docker 卷持久化） |
 | 音频生成 | edge-tts（Microsoft 神经网络语音，中文 Xiaoxiao / 英文 Jenny） |
 | 图像处理 | Pillow, NumPy, OpenCV（headless） |
 | 拼音排序 | pypinyin |
@@ -52,20 +66,17 @@ python manage.py runserver 0.0.0.0:8000
 
 ## Docker 部署
 
-支持一键 Docker 部署，镜像自动通过 GitHub Actions 构建推送。
+支持一键 Docker 部署，镜像通过 GitHub Actions 自动构建推送。
 
 ```bash
 docker compose up -d
 ```
 
-访问 `http://服务器IP:2511`。数据持久化到 `/mnt/usb2/Configs/learning-platform/data`（db + media）。
+访问 `http://服务器IP:2511`。数据持久化到 `./data/`（db + media），容器重建不丢数据。
 
-**更新部署**：
-```bash
-docker compose pull && docker compose up -d
-```
+**更新部署**：`docker compose pull && docker compose up -d`
 
-> `.env` 文件中需设置 `DJANGO_SECRET_KEY`，否则容器无法启动。
+> `.env` 文件中需设置 `DJANGO_SECRET_KEY`。
 
 ## 项目结构
 
