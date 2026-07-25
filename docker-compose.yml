@@ -11,7 +11,7 @@ services:
       # 局域网部署：DEBUG 打开以便 Django 自动托管 /media/ /static/
       # 公网部署应设为 false 并配合 nginx 反向代理
       - DJANGO_DEBUG=${DJANGO_DEBUG:-true}
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:?set DJANGO_SECRET_KEY in .env or environment}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-learning-platform-dev-key-change-me}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-*}
       # 媒体素材来源（含顶层 media/ 目录的 tar.gz）
       - MEDIA_SOURCE_URL=https://codeload.github.com/Simiely/learning-platform/tar.gz/refs/heads/master
