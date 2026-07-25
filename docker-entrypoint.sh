@@ -28,17 +28,8 @@ else
     echo "    no bundled media found, using volume content as-is."
 fi
 
-echo "==> [4/6] Seeding sample data"
-if [ "${SEED_FORCE:-}" = "1" ]; then
-    echo "    SEED_FORCE=1, running seed_data --force"
-    python manage.py seed_data --force
-else
-    python manage.py shell -c \
-      "from apps.core.models import Category; print('HAS_DATA' if Category.objects.exists() else 'NO_DATA')" \
-      | grep -q NO_DATA \
-      && python manage.py seed_data \
-      || echo "    Data already present, skipping. Set SEED_FORCE=1 to force refresh."
-fi
+echo "==> [4/6] Syncing seed data (creates new items, updates changed, never deletes)"
+python manage.py seed_sync
 
 echo "==> [5/7] Syncing image positions from seed_data"
 # Non-fatal: sync_positions failure should NOT prevent gunicorn from starting.

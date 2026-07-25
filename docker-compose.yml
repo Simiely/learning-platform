@@ -23,8 +23,6 @@ services:
       - DJANGO_SUPERUSER_USERNAME=${ADMIN_USERNAME:-admin}
       - DJANGO_SUPERUSER_EMAIL=${ADMIN_EMAIL:-admin@example.com}
       - DJANGO_SUPERUSER_PASSWORD=${ADMIN_PASSWORD:-admin1234}
-      # 设为 1 时强制重建动物数据（新增动物后使用，执行完改回 0）
-      - SEED_FORCE=1
     volumes:
       # 数据位置（绑定挂载，持久化）：db + media，首次运行由 Docker 自动创建
       - /mnt/usb2/Configs/learning-platform/data/db:/app/db
