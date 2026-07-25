@@ -15,7 +15,7 @@ class Command(BaseCommand):
         updated = 0
         missing = []
 
-        for name, english_name, emoji, img_file, audio_file, fact, img_pos in ANIMALS:
+        for name, english_name, emoji, img_file, audio_file, fact, img_pos, *_ in ANIMALS:
             try:
                 item = Item.objects.get(name=name)
             except Item.DoesNotExist:
