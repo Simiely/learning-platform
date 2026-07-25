@@ -182,8 +182,9 @@ iPad 检测用 `screen.width`（物理像素），不用 `window.innerWidth`（�
 
 ### Safari 特殊处理
 
-- `100vh` 在 iOS Safari 含地址栏高度，卡片/练习模式直接 `height: calc(100vh - 52px)` 适配
-- **body 不要同时设 `display: flex` + `min-height`**（Safari bug：子元素不会扩展）
+- **状态栏/刘海适配**：`viewport-fit=cover` + `env(safe-area-inset-top)`，导航栏和弹窗按钮自动避让 iPhone 刘海/灵动岛和 iPad 状态栏
+- **100vh 地址栏 Bug**：iOS Safari 的 `100vh` 含地址栏高度，卡片/练习模式用 JS 计算的 `--vh` 自定义属性（`window.innerHeight`）替代原生 `100vh`，配合 `viewport-fit=cover` 避免溢出
+- **body 不要同时设 `display: flex` + `min-height`**（Safari bug：子元素不会扩展到 min-height）
 - `cursor: grab/grabbing` 需要 `-webkit-` 前缀自动处理
 - 练习模式 CSS 布局链不能破坏：`container-card(固定高度) → quiz-body(flex:1) → quiz-round(flex:1,min-height:0)`
 

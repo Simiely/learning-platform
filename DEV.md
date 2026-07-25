@@ -709,5 +709,80 @@ GIT_SSL_NO_VERIFY=1 git -c http.proxy=http://127.0.0.1:7890 -c https.proxy=http:
 ### 7. 页面布局塌缩
 
 - Safari: body 不要 `display:flex` + `min-height` 同时用
-- 卡片/练习: `.container-card` 保持 `height: calc(100vh - 52px)`
+- 卡片/练习: `.container-card` 保持 `height: calc(var(--vh, 1vh) * 100 - 52px)`，用 JS --vh 替代原生 100vh
 - 所有全屏页面: `.mode-bar { flex: none }` + 内容区 `flex: 1; min-height: 0; overflow: hidden`
+
+---
+
+## iOS 状态栏 / 刘海 Safe Area 适配（2026-07-25）
+
+### 现象
+
+iPhone 刘海/灵动岛机型上，导航栏内容和弹窗关闭按钮被状态栏遮挡；iPad 上同样出现顶部元素超出一部分。卡片模式底部溢出。
+
+### 根因分析
+
+项目设置了 `viewport-fit=cover`（meta 标签）使页面扩展到屏幕物理边缘，但没有配套的 CSS `env(safe-area-inset-*)` 来避让安全区域。同时 `100vh` 在 iOS Safari 包含了地址栏高度，导致实际可用高度 > `100vh`。
+
+完整时间线：
+1. 提交 `f5d07fe` 引入了 `viewport-fit=cover` + JS `--vh` + body flex — 解决了 100vh bug
+2. 提交 `5d58d73` 因 Safari flex+min-height bug 回退了 body flex 和 `var(--vh)`，容器回到 `calc(100vh - 52px)`
+3. **问题**：`viewport-fit=cover` 仍在但失去配套 —— 状态栏/刘海遮挡 + 100vh 溢出同时出现
+
+### 修复
+
+三管齐下：
+
+**CSS 端**（`style.css`）：
+```css
+:root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 导航栏避让刘海/状态栏 */
+.navbar { padding-top: var(--safe-top); }
+
+/* 卡片/练习模式：用 JS --vh 替代 100vh（排除地址栏 + safe area） */
+.container-card { height: calc(var(--vh, 1vh) * 100 - 52px); }
+
+/* 弹窗关闭按钮避让 */
+.popup-close { top: calc(14px + var(--safe-top)); }
+.img-fs .fs-close { top: calc(20px + var(--safe-top)); }
+```
+
+**JS 端**（`base.html`，已有，无需修改）：
+```javascript
+function setViewportHeight() {
+    var vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', vh + 'px');
+}
+```
+
+**关键原理**：
+- `env(safe-area-inset-top)` → 系统提供的刘海/状态栏高度，非刘海设备为 0
+- `var(--vh, 1vh) * 100` → `window.innerHeight`，iOS 上自动排除地址栏和安全区域
+- 两者结合：navbar 推离刘海 + 容器高度用真实可见区域
+
+**退化行为**：
+- 桌面浏览器：`safe-area-inset-top = 0px`，`vh = 100vh`，无影响
+- 无刘海 iPhone：`safe-area-inset-top = 20px`（状态栏），正常避让
+- 有刘海 iPhone：`safe-area-inset-top = 59px`（灵动岛+状态栏），正常避让
+- iPad：`safe-area-inset-top = 24px`，正常避让
+
+### 教训
+
+- `viewport-fit=cover` 必须配套 `env(safe-area-inset-*)`，只设 meta 不写 CSS 就会遮挡
+- iOS 的 `100vh` 不可用于精确布局，用 `window.innerHeight` 的 JS 自定义属性
+- body 的 `flex` + `min-height` 组合在 Safari 是毒药，保持 body 无 flex
+- 修改布局链后要在 iPad/iPhone 真机上验证，桌面 Chrome DevTools 模拟不够准
+
+### 快速排错
+
+| 现象 | 可能原因 | 排查 |
+|------|---------|------|
+| 顶部被遮挡 | navbar 缺 safe-top padding | 检查 `.navbar` 是否有 `padding-top: var(--safe-top)` |
+| 底部溢出 | container-card 用了 100vh 而非 var(--vh) | 检查 `.container-card` height 是否含 `var(--vh)` |
+| 弹窗按钮被挡 | close 按钮 top 未加 safe-top | 检查 `.popup-close` / `.fs-close` top 值 |
+| 非刘海设备也异常 | safe-top 变成了非 0 值 | 确认 `env()` 有 fallback `0px` |
+| 桌面端布局变了 | 误改了 body CSS | 确认 body 仍无 flex/min-height |

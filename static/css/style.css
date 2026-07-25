@@ -20,6 +20,8 @@
     --sound-bg: #faf8f3;          /* sound rows — light surface in light mode */
     --sound-bg-active: #f1ede4;
     --font: 'PingFang SC','Microsoft YaHei','Noto Sans SC',-apple-system,sans-serif;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -88,6 +90,7 @@ body {
     top: 0;
     z-index: 100;
     box-shadow: var(--shadow-sm);
+    padding-top: var(--safe-top);
 }
 
 .nav-inner {
@@ -454,7 +457,7 @@ body {
 
 .popup-close {
     position: absolute;
-    top: 14px;
+    top: calc(14px + var(--safe-top));
     right: 14px;
     z-index: 10;
     width: 40px;
@@ -604,7 +607,7 @@ body {
 /* ---- Card mode: full-viewport, no scroll ---- */
 .container.container-card {
     padding: 0 20px;
-    height: calc(100vh - 52px);
+    height: calc(var(--vh, 1vh) * 100 - 52px);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -1107,7 +1110,7 @@ body {
 
 .img-fs .fs-close {
     position: absolute;
-    top: 20px;
+    top: calc(20px + var(--safe-top));
     right: 20px;
     width: 44px;
     height: 44px;
