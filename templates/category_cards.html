@@ -50,7 +50,7 @@
 <div class="img-fs" id="card-fs-overlay" onclick="closeZoom(event)">
     <button class="fs-close">&#10005;</button>
     <div class="fs-zoom-wrap" id="fs-zoom-wrap">
-        <img class="fs-img-clone" id="fs-img-clone" style="max-width:90vw;max-height:90vh;object-fit:contain;cursor:grab;transition:transform .15s ease;">
+        <img class="fs-img-clone" id="fs-img-clone" style="max-width:90vw;max-height:90vh;object-fit:contain;cursor:grab;">
     </div>
     <div class="fs-tip">滚轮/双指手势缩放 · 点击空白关闭</div>
 </div>
@@ -152,6 +152,65 @@
             document.getElementById('card-fs-overlay').classList.remove('show');
         }
     }
+
+    // ---- Zoom: wheel + pinch ----
+    (function initZoom() {
+        var scale = 1, minScale = 1, maxScale = 5;
+        var clone = document.getElementById('fs-img-clone');
+        var wrap = document.getElementById('fs-zoom-wrap');
+        var overlay = document.getElementById('card-fs-overlay');
+
+        function applyScale() {
+            clone.style.transform = 'scale(' + scale + ')';
+        }
+
+        // Wheel zoom
+        wrap.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            var delta = e.deltaY > 0 ? -0.15 : 0.15;
+            scale = Math.min(maxScale, Math.max(minScale, scale + delta));
+            applyScale();
+        }, { passive: false });
+
+        // Pinch zoom
+        var initialDist = 0, initialScale = 1;
+        wrap.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                initialDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialScale = scale;
+            }
+        }, { passive: true });
+
+        wrap.addEventListener('touchmove', function(e) {
+            if (e.touches.length === 2) {
+                var dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                if (initialDist > 0) {
+                    scale = Math.min(maxScale, Math.max(minScale, initialScale * dist / initialDist));
+                    applyScale();
+                }
+            }
+        }, { passive: true });
+
+        // Double-click to reset
+        clone.addEventListener('dblclick', function() {
+            scale = 1;
+            applyScale();
+        });
+
+        // Reset on close
+        overlay.addEventListener('click', function(e) {
+            if (e.target === e.currentTarget || e.target.classList.contains('fs-close')) {
+                scale = 1;
+                clone.style.transform = '';
+            }
+        });
+    })();
 
     // Initial render
     render();
