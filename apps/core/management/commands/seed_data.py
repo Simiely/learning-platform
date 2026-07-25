@@ -11,7 +11,7 @@ from apps.core.models import Category, Item
 # 不要用 detect_centers --force 覆盖这些值！
 # 修改焦点：直接改下面元组最后一列，然后 seed_data --force。
 ANIMALS = [
-    # (name, english_name, emoji, img_file, audio_file, fact, image_position, image_position_ipad)
+    # (name, code, english_name, emoji, img_file, audio_file, fact, image_position, image_position_ipad)
     ('狮子', 'lion_2026072301', 'Lion', '🦁', 'lion.jpg', 'lion.mp3',     '狮子是唯一群居的猫科动物，一个狮群通常由1-2头雄狮和几头母狮组成。雄狮的鬃毛越浓密越受母狮青睐。',
      '23% 47%', '23% 47%'),  # 狮子 — 上移10%
     ('大象', 'elephant_2026072302', 'Elephant', '🐘', 'elephant.jpg', 'elephant.mp3',     '大象是陆地上最大的哺乳动物。它们的鼻子由超过4万块肌肉组成，既能拔起大树也能捡起一粒花生。',
@@ -170,7 +170,7 @@ class Command(BaseCommand):
 
         for slug, items, use_real_media in items_data:
             cat = cat_objs[slug]
-            for idx, (code, name, en_name, emoji, img_file, audio_file, fact, img_pos, img_pos_ipad) in enumerate(items):
+            for idx, (name, code, en_name, emoji, img_file, audio_file, fact, img_pos, img_pos_ipad) in enumerate(items):
                 item = Item.objects.create(
                     category=cat,
                     code=code,

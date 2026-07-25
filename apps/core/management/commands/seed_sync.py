@@ -41,7 +41,7 @@ class Command(BaseCommand):
         created = 0
         updated = 0
 
-        for idx, (code, name, en_name, emoji, img_file, audio_file, fact, img_pos, img_pos_ipad) in enumerate(ANIMALS):
+        for idx, (name, code, en_name, emoji, img_file, audio_file, fact, img_pos, img_pos_ipad) in enumerate(ANIMALS):
             defaults = {
                 "name": name,
                 "english_name": en_name,
