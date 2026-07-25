@@ -572,3 +572,55 @@ clone.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + 
 
 - `e.target === e.currentTarget` 对内部有子元素全屏覆盖的场景不可靠
 - 用子元素 ID / class 显式匹配比层级委托更可控
+
+---
+
+## Safari flex + min-height 兼容 bug（2026-07-25）
+
+### 现象
+
+练习模式容器高度不随设备/方向自适应，无法填满屏幕。
+
+### 根因
+
+bfcache 补丁给 `body` 加了 `display: flex; min-height: calc(var(--vh) * 100)`。Safari 对 flex 容器 + `min-height` 的组合有兼容 bug：子元素 `flex: 1` 不会正确扩展到 `min-height` 定义的高度，而是塌缩到内容高度。
+
+### 修复
+
+恢复 `body` 原始 CSS（无 flex），`container-card` 直接用 `height: calc(100vh - 52px)`。iOS 的 `100vh` 虽含地址栏，但在卡片/练习模式（全屏容器）下差值可接受。
+
+### 教训
+
+- **Safari flex + min-height 不要同时用**。要么 `height` + flex，要么 `min-height` + no flex。
+- bfcache 修复只保留了 `<script>` 部分（后续可能需要），CSS 未引入 `--vh` 依赖。
+- 跨浏览器测试前优先在 macOS/iPad Safari 验证。
+
+---
+
+## Alpine 响应式对象赋值（2026-07-25）
+
+### 现象
+
+练习模式 iPad 图片焦点不生效，始终显示 iPhone 焦点。
+
+### 根因
+
+```javascript
+var q = this.currentQuestion;  // q 是原始对象引用
+q.image_position = newPos;     // 直接写属性，不触发 Alpine 响应式
+```
+
+Alpine 3 的 Proxy 需要**通过 `this.xxx` 路径写入**才能触发依赖追踪。
+
+### 修复
+
+```javascript
+this.currentQuestion.image_position = (screen.width >= 768)
+    ? q.image_position_ipad_landscape
+    : q.image_position_ipad_portrait;
+```
+
+### 教训
+
+- Alpine 中修改嵌套对象属性必须通过代理路径：`this.currentQuestion.image_position = ...` ✅ | `var q = this.currentQuestion; q.image_position = ...` ❌
+- 读取数据可以用局部变量，**写入必须走 this**

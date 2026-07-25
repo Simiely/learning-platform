@@ -41,18 +41,17 @@ python manage.py runserver 0.0.0.0:8000
 
 ## 部署 & 更新
 
-Docker 一行部署，数据持久化到宿主机卷。**安全更新**不会丢失用户进度：
-
 ```bash
-# 首次部署
+# 首次部署（需 .env 中设置 DJANGO_SECRET_KEY）
 docker compose up -d
 
-# 更新代码后（Dpanel / 手动）
+# 更新已有部署
 docker compose pull && docker compose up -d
-# 容器自动 migrate + seed_sync，只增不改
+# 容器自动 migrate + seed_sync，不丢数据
 ```
 
-> 如果数据库被污染需要重建：`rm data/db/db.sqlite3` 后重启容器。
+> **首次部署时**，数据库为空，容器自动执行 seed_data 填充 41 只动物数据。
+> **更新部署时**，不需要删数据库。seed_sync 只在发现新动物时追加。
 
 | 层级 | 技术 |
 |------|------|
