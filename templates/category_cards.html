@@ -86,10 +86,16 @@
         var img = document.getElementById('card-img');
         var emoji = document.getElementById('card-emoji');
         if (it.image) {
-            img.src = it.image;
-            img.style.objectFit = 'cover';
             var pos = centerPos(it.image_position);
-            img.style.objectPosition = pos;
+            img.style.objectFit = 'cover';
+            img.style.objectPosition = '50% 50%';  // reset while loading
+            img.style.opacity = '0.3';
+            img.style.transition = 'opacity .12s';
+            img.onload = function onCardImgLoad() {
+                img.style.objectPosition = pos;
+                img.style.opacity = '1';
+            };
+            img.src = it.image;
             img.style.display = 'block';
             emoji.style.display = 'none';
         } else {
