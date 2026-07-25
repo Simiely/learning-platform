@@ -120,10 +120,11 @@ Safari 强缓存。每次改 `style.css` 必须更新 `base.html` 里的 `?v=` �
 网络走代理 `127.0.0.1:7890`，git 有时需要 `GIT_SSL_NO_VERIFY=1 git -c http.proxy=http://127.0.0.1:7890 push`。
 
 ### 6. 部署更新
+Dpanel 点击「更新」即可（`docker-compose.yml` 已配置 `pull_policy: always`）。
+命令行等效：
 ```bash
 docker compose pull && docker compose up -d
 ```
-不要用 Dpanel 的更新按钮（可能不 pull 新镜像）。
 
 ## 部署地址
 

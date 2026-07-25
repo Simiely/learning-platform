@@ -24,3 +24,11 @@ services:
       - /mnt/usb2/Configs/learning-platform/data/db:/app/db
       - /mnt/usb2/Configs/learning-platform/data/media:/app/media
     restart: unless-stopped
+    # Dpanel "更新" = restart，不加 pull_policy 不拉新镜像
+    pull_policy: always
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
