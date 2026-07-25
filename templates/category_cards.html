@@ -86,14 +86,9 @@
         var img = document.getElementById('card-img');
         var emoji = document.getElementById('card-emoji');
         if (it.image) {
-            var pos = centerPos(it.image_position);
-            img.style.objectFit = 'cover';
-            // Defer position until image loads to prevent old-image jump
-            img.onload = function onCardImgLoad() {
-                img.style.objectPosition = pos;
-            };
-            img.style.objectPosition = '50% 50%';
             img.src = it.image;
+            img.style.objectFit = 'cover';
+            img.style.objectPosition = centerPos(it.image_position);
             img.style.display = 'block';
             emoji.style.display = 'none';
         } else {
