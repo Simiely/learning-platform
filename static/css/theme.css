@@ -1,0 +1,87 @@
+/* ===================================================
+   Design tokens & theme
+   =================================================== */
+
+:root {
+    --bg: #f5f0e8;
+    --card: #ffffff;
+    --primary: #FF9292;
+    --on-primary: #6e2a2a;
+    --accent: #e8a87c;
+    --text: #3c3c3c;
+    --muted: #888888;
+    --border: #e0dcd4;
+    --tag-bg: #eef2e6;
+    --radius: 20px;
+    --radius-sm: 14px;
+    --shadow: 0 8px 30px rgba(255,146,146,.16);
+    --shadow-sm: 0 4px 16px rgba(60,60,60,.08);
+    --sound-bg: #faf8f3;
+    --sound-bg-active: #f1ede4;
+    --font: 'PingFang SC','Microsoft YaHei','Noto Sans SC',-apple-system,sans-serif;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+/* Keyboard focus visibility (WCAG 2.1 AA) */
+:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-size: 15px;
+    transition: background .3s ease, color .3s ease;
+}
+
+/* Dark mode tokens */
+:root[data-theme="dark"] {
+    --bg: #1a1d1a;
+    --card: #242824;
+    --primary: #FF9292;
+    --on-primary: #6e2a2a;
+    --accent: #e8a87c;
+    --text: #e8e6e0;
+    --muted: #9a9a90;
+    --border: #353a35;
+    --tag-bg: #2e3530;
+    --shadow: 0 8px 30px rgba(0,0,0,.45);
+    --shadow-sm: 0 4px 16px rgba(0,0,0,.35);
+    --sound-bg: #2e3530;
+    --sound-bg-active: #3a423a;
+}
+
+/* Auto dark: follow system preference */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #1a1d1a;
+        --card: #242824;
+        --primary: #FF9292;
+        --on-primary: #6e2a2a;
+        --accent: #e8a87c;
+        --text: #e8e6e0;
+        --muted: #9a9a90;
+        --border: #353a35;
+        --tag-bg: #2e3530;
+        --shadow: 0 8px 30px rgba(0,0,0,.45);
+        --shadow-sm: 0 4px 16px rgba(0,0,0,.35);
+        --sound-bg: #2e3530;
+        --sound-bg-active: #3a423a;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

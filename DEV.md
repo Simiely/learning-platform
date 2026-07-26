@@ -786,3 +786,90 @@ function setViewportHeight() {
 | 弹窗按钮被挡 | close 按钮 top 未加 safe-top | 检查 `.popup-close` / `.fs-close` top 值 |
 | 非刘海设备也异常 | safe-top 变成了非 0 值 | 确认 `env()` 有 fallback `0px` |
 | 桌面端布局变了 | 误改了 body CSS | 确认 body 仍无 flex/min-height |
+
+---
+
+## 模块化重构记录（2026-07-26）
+
+### 重构背景
+
+原代码前端 JS 散落在 4 个模板文件中（650+ 行），高度重复；CSS 为单一 1174 行巨石文件。每次修改都需在多处同步更新。重构目标：消除重复代码、按页面拆分 CSS、提取共享 JS 模块。
+
+### 模块化方案
+
+**CSS**：拆分为 12 个文件（theme / layout / buttons / index / browse / popup / cards / quiz / auth / profile / zoom / utils），通过 `{% block extra_css %}` 按需加载。
+
+**JS**：提取 4 个共享模块：
+- `audio-player.js` — AudioPlayer 工厂函数，统一音频播放
+- `image-zoom.js` — ImageZoom.init()，图片缩放/拖拽
+- `ipad-detect.js` — iPadDetect.getImagePos() / .centerPos()
+- `confetti.js` — Confetti 礼花 + 音效
+
+### 踩坑：JS 加载时序
+
+**问题**：重构后卡片模式报 `iPadDetect is not defined`。
+
+**根因**：`ipad-detect.js` 在 `<body>` 底部用 `defer` 加载，但模板内联 `<script>` IIFE 在 HTML 解析阶段立即执行，比 `defer` 脚本更早。内联脚本引用了尚未定义的 `iPadDetect`。
+
+**修复**：将 `utils.js` 和 `ipad-detect.js` 移到 `<head>` 中同步加载（无 `defer`），确保内联脚本执行前已可用。
+
+**规则**：模板内联脚本直接引用的 JS 模块必须在 `<head>` 中同步加载。仅未被内联脚本引用的模块（如 `confetti.js`、`image-zoom.js`）可以 `defer`。
+
+### 踩坑：CSS 归属错误
+
+**问题**：发音按钮（`.ph-line`、`.ph-cell`、`.ph-sound`）样式在卡片模式下丢失。
+
+**根因**：这些样式放在 `popup.css` 中，但卡片页面不加载 `popup.css`。
+
+**修复**：将共享的发音按钮样式移到全局加载的 `layout.css`。
+
+**规则**：模板重构时，逐一检查每个页面加载的 CSS 文件是否包含该页面使用的所有类名。最好做一个 CSS 类名 ↔ 模板的交叉对照。
+
+### 踩坑：浏览器 autoplay 拦截
+
+**问题**：`NotAllowedError: play() failed because the user didn't interact with the document first`。
+
+**解决模式**：
+```javascript
+// 尝试播放
+audio.play().catch(function(e) { console.log('Audio play error:', e); });
+// 如果被拦截，绑定一次性解锁
+document.addEventListener('click', function() { audio.play(); }, { once: true });
+document.addEventListener('touchend', function() { audio.play(); }, { once: true });
+```
+
+用户首次点击/触摸屏幕后，浏览器解除 autoplay 限制，后续播放正常。
+
+### 踩坑：快速翻卡时音频序列错乱
+
+**问题**：快速连续翻页时，中文没读完就跳到英文，或上一页英文覆盖了当前页中文。
+
+**根因**：每次 `playSequence` 创建的 `setTimeout` 未在下次调用时清除。
+
+**修复模式**（`audio-player.js`）：
+```javascript
+var sequenceId = 0;
+function cancelPending() {
+    sequenceId++;  // 递增 ID 使旧回调失效
+    if (enTimer) { clearTimeout(enTimer); enTimer = null; }
+}
+function playSequence(items, idx) {
+    cancelPending();
+    var mySeqId = sequenceId;
+    // ... 所有异步回调中检查 sequenceId !== mySeqId 则 return
+}
+```
+
+### 版本号管理
+
+CSS 文件通过 `?v=YYYYMMDDx` 版本号绕过 Safari 强缓存。修改 CSS 后：
+1. 更新 `base.html` 中全局加载的 CSS（theme/layout/buttons/utils）版本号
+2. 更新各页面 `{% block extra_css %}` 中页面专属 CSS 版本号
+
+### 最终文件清单
+
+| 类型 | 数量 | 文件 |
+|------|------|------|
+| CSS 模块 | 12 | theme, layout, buttons, utils, index, browse, popup, cards, quiz, auth, profile, zoom |
+| JS 模块 | 5 | utils, ipad-detect, audio-player, image-zoom, confetti（+ alpine.min.js） |
+| 模板 | 9 | base, index, category_browse, category_cards, category_quiz, browse_popup, login, register, profile |

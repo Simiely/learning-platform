@@ -1,0 +1,55 @@
+/* ===================================================
+   Profile / Stats page
+   =================================================== */
+
+.profile-page h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+
+.stats-big {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 24px 0;
+}
+@media (min-width: 769px) { .stats-big { grid-template-columns: repeat(4,1fr); } }
+
+.stat-tile {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    box-shadow: var(--shadow-sm);
+}
+.stat-tile .st-num { font-size: 38px; font-weight: 700; color: var(--primary); line-height: 1; }
+.stat-tile .st-label { font-size: 14px; color: var(--muted); margin-top: 10px; }
+
+.top-list {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 22px 28px;
+    box-shadow: var(--shadow-sm);
+}
+.top-list .tl-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+
+.tl-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+}
+.tl-item:last-child { border-bottom: none; }
+
+.tl-rank {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--tag-bg);
+    color: var(--primary);
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+}
+.tl-name { font-size: 16px; font-weight: 600; flex: 1; }
+.tl-count { font-size: 15px; color: var(--muted); }

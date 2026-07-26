@@ -21,7 +21,6 @@
     </script>
     <title>{% block title %}学习卡片{% endblock %}</title>
     {% load static %}
-    <script src="{% static 'js/theme.js' %}"></script>
     <script>
         (function () {
             try {
@@ -29,14 +28,19 @@
                 if (theme === 'light') {
                     document.documentElement.setAttribute('data-theme', 'light');
                 } else {
-                    // Default to dark (no stored pref or 'dark' or 'auto' → dark)
                     document.documentElement.setAttribute('data-theme', 'dark');
                 }
             } catch (e) {}
         })();
     </script>
     <script defer src="{% static 'js/alpine.min.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260725sa">
+    <script src="{% static 'js/utils.js' %}"></script>
+    <script src="{% static 'js/ipad-detect.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=20260726b">
+    <link rel="stylesheet" href="{% static 'css/layout.css' %}?v=20260726b">
+    <link rel="stylesheet" href="{% static 'css/buttons.css' %}?v=20260726b">
+    <link rel="stylesheet" href="{% static 'css/utils.css' %}?v=20260726b">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     <nav class="navbar">

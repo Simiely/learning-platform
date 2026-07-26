@@ -1,5 +1,14 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}{{ category.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/browse.css' %}?v=20260726b">
+<link rel="stylesheet" href="{% static 'css/popup.css' %}?v=20260726b">
+<link rel="stylesheet" href="{% static 'css/zoom.css' %}?v=20260726b">
+<script src="{% static 'js/audio-player.js' %}"></script>
+<script src="{% static 'js/image-zoom.js' %}"></script>
+{% endblock %}
 
 {% block content %}
 <div class="mode-bar">
@@ -45,8 +54,9 @@
     var storageKey = 'lc-visited-' + slug;
     var browseItems = {{ items_json|safe }};
 
-    // Load visited from localStorage
-    var visited = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
+    // Load visited from localStorage (wrapped for private browsing mode)
+    var visited = new Set();
+    try { visited = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]')); } catch(e) {}
 
     // Apply visited state to tiles
     function applyVisited() {
@@ -63,7 +73,7 @@
     }
 
     function saveVisited() {
-        localStorage.setItem(storageKey, JSON.stringify([...visited]));
+        try { localStorage.setItem(storageKey, JSON.stringify([...visited])); } catch(e) {}
     }
 
     applyVisited();
@@ -72,7 +82,7 @@
     window.resetVisited = function(s) {
         if (s !== slug) return;
         visited.clear();
-        localStorage.removeItem(storageKey);
+        try { localStorage.removeItem(storageKey); } catch(e) {}
         applyVisited();
         fetch('/api/reset-visited/' + s + '/', {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}}).catch(function(){});
     };
@@ -88,8 +98,7 @@
             if (browseItems[i].id === id) { idx = i; break; }
         }
         showPopup(browseItems, idx);
-        // Also update on server for logged-in users
-        fetch('/api/item/' + id + '/').catch(function(){});
+        fetch('/api/mark-viewed/' + id + '/', {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}}).catch(function(){});
     };
 })();
 </script>

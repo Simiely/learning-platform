@@ -86,29 +86,46 @@ learning-platform/
 │   ├── views.py                # 视图 + API（含三套焦点返回）
 │   ├── image_utils.py          # emoji 取色 + 图片焦点检测
 │   └── management/commands/
-│       ├── seed_data.py        # 种子数据（41 只动物，含 iPhone/iPad 双套焦点）
-│       ├── sync_positions.py   # 部署时同步图片焦点到数据库
-│       ├── detect_centers.py   # OpenCV 自动检测焦点（不要用 --force）
-│       └── ensure_media.py     # （已废弃，媒体从镜像 bundle 同步）
+│       ├── seed_data.py        # 种子数据（41 只动物，含三套焦点）
+│       ├── seed_sync.py        # 增量同步到数据库（更新部署安全）
+│       ├── sync_positions.py   # 同步图片焦点到数据库
+│       └── detect_centers.py   # OpenCV 自动检测焦点（不要用 --force）
 ├── apps/users/                 # 用户模块
 ├── config/                     # Django 配置
 ├── templates/                  # HTML 模板
-│   ├── base.html               # 公共布局
+│   ├── base.html               # 公共布局（全局 CSS/JS 加载）
+│   ├── index.html              # 首页（板块卡片）
 │   ├── category_browse.html    # 浏览模式（Emoji 方块网格）
-│   ├── category_cards.html     # 卡片模式（含 zoom + 拖拽 + iPad 检测）
-│   ├── category_quiz.html      # 练习模式（含 confetti + audio）
-│   └── browse_popup.html       # 浏览弹窗
+│   ├── category_cards.html     # 卡片模式（翻卡 + 缩放拖拽）
+│   ├── category_quiz.html      # 练习模��（看图选词 + 礼花）
+│   ├── browse_popup.html       # 浏览弹窗（图片缩放 + 发音）
+│   ├── login.html / register.html / profile.html
 ├── static/
-│   ├── css/style.css           # 全局样式（CSS Variables，深/浅两套 token）
+│   ├── css/                    # 模块化 CSS（按页面拆分）
+│   │   ├── theme.css           # 设计令牌 + 深色/浅色/自动主题
+│   │   ├── layout.css          # 导航栏 + 模式栏 + 发音按钮
+│   │   ├── buttons.css         # 按钮系统
+│   │   ├── index.css           # 首页板块卡片
+│   │   ├── browse.css          # 浏览方块网格
+│   │   ├── popup.css           # 弹窗遮罩 + 卡片布局
+│   │   ├── cards.css           # 卡片全屏模式
+│   │   ├── quiz.css            # 练习模式
+│   │   ├── auth.css            # 登录/注册
+│   │   ├── profile.css         # 统计页
+│   │   ├── zoom.css            # 全屏图片缩放遮罩
+│   │   └── utils.css           # 工具类
 │   └── js/
 │       ├── alpine.min.js       # Alpine.js 本地托管（不用 CDN！）
-│       ├── theme.js            # 三态主题切换
-│       ├── popup.js            # 浏览弹窗逻辑
-├── media/                      # 图片 + 音频素材（41 只动物，进 git）
+│       ├── utils.js            # 工具函数
+│       ├── ipad-detect.js      # iPad 焦点检测 + 卡片焦点上偏
+│       ├── audio-player.js     # 统一音频播放（基于时长自动连播）
+│       ├── image-zoom.js       # 图片缩放/拖拽（滚轮+双指+拖拽）
+│       └── confetti.js         # 礼花特效 + Web Audio 音效
+├── media/                      # 图片 + 音频素材（41 只动物）
 ├── ANIMALS.md                  # 动物数据主清单（含三套焦点）
 ├── DEV.md                      # 开发笔记（详细踩坑记录）
 ├── Dockerfile
-├── docker-entrypoint.sh        # 容器启动脚本（bootstrap）
+├── docker-entrypoint.sh
 ├── docker-compose.yml
 └── requirements.txt
 ```
@@ -163,15 +180,52 @@ python manage.py seed_sync
 - 所有焦点格式：`'X% Y%'`，X=水平（左0%→右100%），Y=垂直（上0%→下100%）
 - **元组解包顺序绝对不能错**：第 8、9、10 个分别是 iPhone / iPad 竖 / iPad 横
 
-### 前端焦点检测（三页面实现不同）
+### 前端架构（模块化）
 
-| 页面 | 检测方式 | 文件 |
+项目经过模块化重构，前端资源按功能拆分：
+
+**CSS 模块加载规则**：
+| 文件 | 加载范围 | 内容 |
 |------|---------|------|
-| 卡片 | 全局函数 `getImagePos(it)` 按 `screen.width>=768` 判断 | `category_cards.html` |
-| 练习 | Alpine `nextQuestion()` 中 `this.currentQuestion.image_position` 替换 | `category_quiz.html` |
-| 浏览 | popup 加载时 `screen.width>=768` → 选对应字段 | `browse_popup.html` |
+| `theme.css` | 全局 | 设计令牌、深色/浅色/自动主题、reset |
+| `layout.css` | 全局 | 导航栏、模式栏、发音按钮样式 |
+| `buttons.css` | 全局 | 按钮系统 |
+| `utils.css` | 全局 | 工具类 |
+| `index.css` | 首页 | 板块卡片网格 |
+| `browse.css` | 浏览页 | Emoji 方块网格 |
+| `popup.css` | 浏览页 | 弹窗遮罩 + 卡片布局 |
+| `cards.css` | 卡片页 | 全屏翻卡 |
+| `quiz.css` | 练习页 | 答题界面 |
+| `auth.css` | 登录/注册 | 表单样式 |
+| `profile.css` | 统计页 | 统计瓷砖 |
+| `zoom.css` | 卡片+浏览 | 全屏图片缩放遮罩 |
 
-iPad 检测用 `screen.width`（物理像素），不用 `window.innerWidth`（不可靠）。
+**JS 共享模块**：
+| 模块 | 导出 | 用途 |
+|------|------|------|
+| `ipad-detect.js` | `iPadDetect.getImagePos()`, `.centerPos()` | iPad 焦点检测 + 卡片上偏 |
+| `audio-player.js` | `AudioPlayer(el)` → `play()`, `stop()`, `playSequence()` | 基于音频时长的中→英自动连播 |
+| `image-zoom.js` | `ImageZoom.init()` | 图片缩放/拖拽（滚轮+双指+拖拽+双击重置） |
+| `confetti.js` | `Confetti.launch()`, `.playCorrectSound()`, `.playWrongSound()` | 礼花 + Web Audio 音效 |
+
+**关键设计规则**：
+- `ipad-detect.js` 和 `utils.js` 在 `<head>` 中同步加载（无 `defer`），确保页面内联脚本执行前可用
+- 页面专属模块（如 `audio-player.js`、`image-zoom.js`）通过 `{% block extra_css %}` 在 head 中同步加载
+- **CSS 版本号**：修改任何 CSS 后，更新所有模板中的 `?v=YYYYMMDDx` 版本号，否则 Safari 强缓存不更新
+
+### 前端焦点检测
+
+现在统一使用 `iPadDetect.getImagePos(item)` 模块（`ipad-detect.js`）：
+
+```javascript
+// 卡片模式：需要向上偏移（动物脸部通常在上部）
+img.style.objectPosition = iPadDetect.centerPos(iPadDetect.getImagePos(it));
+
+// 浏览/练习模式：直接用原始焦点
+img.style.objectPosition = iPadDetect.getImagePos(data);
+```
+
+iPad 检测用 `screen.width >= 768`（物理像素），不用 `window.innerWidth`（Safari 竖屏会缩放）。
 
 ### JS 编码规范
 
@@ -203,11 +257,14 @@ iPad 检测用 `screen.width`（物理像素），不用 `window.innerWidth`（�
 
 | 现象 | 根因 | 解决 |
 |------|------|------|
-| 卡片全崩，只显示 emoji | JS 缺少分号，后续代码不执行 | 查 Console 红色报错 |
-| 图片焦点调整不生效 | 前端没接 iPad 字段 | 确认三页面都接入检测 |
-| 练习容器不填满 | body flex + min-height bug | 回退 body CSS |
-| Docker 部署后数据异常 | 反了元组顺序 | 重新从 seed_data.py 校验 |
-| 音频播放 404 | 磁盘文件名与 DB 不一致 | seed_data 用 `_write_media_file()` 覆写 |
+| 卡片崩，只显示 emoji | JS 缺少分号 或 `iPadDetect` 未加载 | 查 Console；确认 ipad-detect.js 在 head 同步加载 |
+| 图片焦点不生效 | 前端没接 iPad 字段 | 使用 `iPadDetect.getImagePos()` |
+| 发音按钮样式丢失 | 页面没加载对应 CSS 模块 | 确认 `.ph-*` 样式在 `layout.css`（全局加载） |
+| 翻卡时英文覆盖中文 | `playSequence` 未取消旧序列 | 检查 `audio-player.js` 的 `sequenceId` 机制 |
+| 首次加载不发音 | 浏览器 autoplay 拦截 | 已加解锁逻辑，用户点屏幕即可 |
+| Docker 部署后异常 | 元组顺序错 | 从 seed_data.py 校验 |
+| 音频 404 | 磁盘文件名与 DB 不一致 | seed_data 用 `_write_media_file()` 覆写 |
+| CSS 改了不生效 | Safari 强缓存 | 更新所有模板的 `?v=` 版本号 |
 
 ## License
 

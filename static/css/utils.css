@@ -1,0 +1,16 @@
+/* ===================================================
+   Utilities
+   =================================================== */
+
+.empty-hint {
+    text-align: center;
+    color: var(--muted);
+    padding: 48px 0;
+    font-size: 15px;
+}
+
+.page-desc {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 18px;
+}

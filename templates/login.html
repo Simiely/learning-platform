@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}登录{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}?v=20260726b">
+{% endblock %}
 
 {% block content %}
 <div class="auth-page">

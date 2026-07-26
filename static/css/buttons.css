@@ -1,0 +1,35 @@
+/* ===================================================
+   Buttons
+   =================================================== */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 22px;
+    border: none;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all .15s;
+    font-family: var(--font);
+    gap: 6px;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: var(--on-primary);
+    border: 2px solid transparent;
+}
+.btn-primary:active { opacity: .85; }
+
+.btn-outline {
+    background: var(--card);
+    color: var(--text);
+    border: 2px solid var(--border);
+}
+.btn-outline:active { border-color: var(--primary); }
+
+.btn-sm { padding: 7px 14px; font-size: 12px; }

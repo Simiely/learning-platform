@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}统计{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}?v=20260726b">
+{% endblock %}
 
 {% block content %}
 <div class="profile-page">

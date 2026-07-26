@@ -44,17 +44,19 @@
 (function() {
     var popupItems = [];
     var popupIndex = 0;
+    var popupAudio = AudioPlayer(document.getElementById('popup-audio'));
 
     window.showPopup = function(items, index) {
         popupItems = items;
         popupIndex = index;
         renderPopup();
-        var p = document.getElementById('browse-popup');
-        p.style.display = 'flex';
+        document.getElementById('browse-popup').style.display = 'flex';
         document.body.style.overflow = 'hidden';
-        // Auto-play
-        setTimeout(function() { playBrowseAudio('zh'); }, 400);
-        setTimeout(function() { playBrowseAudio('en'); }, 1400);
+        // Try autoplay; if blocked, unlock on first interaction
+        popupAudio.playSequence(popupItems, popupIndex);
+        var unlock = function() { popupAudio.playSequence(popupItems, popupIndex); };
+        document.addEventListener('click', unlock, { once: true });
+        document.addEventListener('touchend', unlock, { once: true });
     };
 
     function renderPopup() {
@@ -70,13 +72,7 @@
         if (data.image) {
             imgEl.src = data.image.startsWith('/') ? data.image : '/media/' + data.image;
             imgEl.style.objectFit = 'cover';
-            var popupPos = data.image_position || '50% 50%';
-            if (screen.width >= 768) {
-                popupPos = (window.innerWidth > window.innerHeight)
-                    ? (data.image_position_ipad_landscape || '50% 50%')
-                    : (data.image_position_ipad_portrait || '50% 50%');
-            }
-            imgEl.style.objectPosition = popupPos;
+            imgEl.style.objectPosition = iPadDetect.getImagePos(data);
             imgEl.style.display = 'block';
             emojiEl.style.display = 'none';
         } else {
@@ -89,55 +85,37 @@
         document.getElementById('popup-sound-zh').className = 'ph-sound' + (data.audio_zh ? '' : ' muted');
         document.getElementById('popup-sound-en').className = 'ph-sound' + (data.audio_en ? '' : ' muted');
         document.getElementById('popup-sound-fact').className = 'ph-sound' + (data.audio_fact ? '' : ' muted');
-
-        var audio = document.getElementById('popup-audio');
-        audio.removeAttribute('src');
     }
 
     window.popupPrev = function() {
         if (popupItems.length === 0) return;
         popupIndex = popupIndex > 0 ? popupIndex - 1 : popupItems.length - 1;
         renderPopup();
-        setTimeout(function() { playBrowseAudio('zh'); }, 300);
-        setTimeout(function() { playBrowseAudio('en'); }, 1300);
+        popupAudio.playSequence(popupItems, popupIndex);
     };
     window.popupNext = function() {
         if (popupItems.length === 0) return;
         popupIndex = popupIndex < popupItems.length - 1 ? popupIndex + 1 : 0;
         renderPopup();
-        setTimeout(function() { playBrowseAudio('zh'); }, 300);
-        setTimeout(function() { playBrowseAudio('en'); }, 1300);
+        popupAudio.playSequence(popupItems, popupIndex);
     };
 
     window.closeBrowsePopup = function(e) {
         if (e && e.type && e.target !== document.getElementById('browse-popup')) return;
         document.getElementById('browse-popup').style.display = 'none';
         document.body.style.overflow = '';
-        var audio = document.getElementById('popup-audio');
-        audio.pause();
-        audio.removeAttribute('src');
+        popupAudio.stop();
     };
 
     window.playBrowseAudio = function(type) {
-        var audio = document.getElementById('popup-audio');
-        var data = popupItems[popupIndex];
-        if (!audio || !data) return;
-        var src = data['audio_' + type];
-        if (!src) return;
-        audio.src = src.startsWith('/') ? src : '/media/' + src;
-        audio.load();
-        audio.play().catch(function(e) { console.log('Audio play error:', e); });
+        popupAudio.play(type, popupItems, popupIndex);
     };
 
-    // ---- Simple fullscreen image zoom ----
-
     window.zoomBrowseImage = function() {
-        var fs = document.getElementById('browse-fs-overlay');
         var img = document.getElementById('popup-img-el');
         if (img.style.display === 'none') return;
-        var clone = document.getElementById('browse-fs-img-clone');
-        clone.src = img.src;
-        fs.classList.add('show');
+        document.getElementById('browse-fs-img-clone').src = img.src;
+        document.getElementById('browse-fs-overlay').classList.add('show');
     };
 
     window.closeBrowseZoom = function(e) {
@@ -148,70 +126,6 @@
         }
     };
 
-    // ---- Zoom: wheel + pinch + drag (matches card mode) ----
-    (function initBrowseZoom() {
-        var scale = 1, minScale = 1, maxScale = 5;
-        var tx = 0, ty = 0;
-        var clone = document.getElementById('browse-fs-img-clone');
-        var wrap = document.getElementById('browse-fs-zoom-wrap');
-        function applyTransform() {
-            clone.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
-        }
-        function resetAll() { scale = 1; tx = 0; ty = 0; applyTransform(); }
-
-        wrap.addEventListener('wheel', function(e) {
-            e.preventDefault();
-            scale = Math.min(maxScale, Math.max(minScale, scale + (e.deltaY > 0 ? -0.15 : 0.15)));
-            if (scale === 1) { tx = 0; ty = 0; }
-            applyTransform();
-        }, { passive: false });
-
-        var initialDist = 0, initialScale = 1;
-        wrap.addEventListener('touchstart', function(e) {
-            if (e.touches.length === 2) {
-                initialDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                initialScale = scale;
-            }
-        });
-        wrap.addEventListener('touchmove', function(e) {
-            if (e.touches.length === 2 && initialDist > 0) {
-                scale = Math.min(maxScale, Math.max(minScale, initialScale * Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) / initialDist));
-                applyTransform();
-            }
-        });
-
-        var dragging = false, dx = 0, dy = 0;
-        clone.addEventListener('mousedown', function(e) {
-            if (scale > 1) { dragging = true; dx = e.clientX - tx; dy = e.clientY - ty; clone.style.cursor = 'grabbing'; e.preventDefault(); }
-        });
-        window.addEventListener('mousemove', function(e) {
-            if (!dragging) return; tx = e.clientX - dx; ty = e.clientY - dy; applyTransform();
-        });
-        window.addEventListener('mouseup', function() {
-            if (dragging) { dragging = false; clone.style.cursor = scale > 1 ? 'grab' : 'zoom-in'; }
-        });
-
-        wrap.addEventListener('touchstart', function(e) {
-            if (e.touches.length === 1 && scale > 1) { dragging = true; dx = e.touches[0].clientX - tx; dy = e.touches[0].clientY - ty; }
-        });
-        wrap.addEventListener('touchmove', function(e) {
-            if (dragging && e.touches.length === 1 && scale > 1) { tx = e.touches[0].clientX - dx; ty = e.touches[0].clientY - dy; applyTransform(); }
-        });
-        wrap.addEventListener('touchend', function() { dragging = false; });
-
-        clone.addEventListener('dblclick', function() { resetAll(); clone.style.cursor = 'grab'; });
-
-        var overlay = document.getElementById('browse-fs-overlay');
-        overlay.addEventListener('click', function(e) {
-            var t = e.target;
-            if (t.classList.contains('fs-close') || t.id === 'browse-fs-overlay'
-                || t.id === 'browse-fs-zoom-wrap' || t.classList.contains('fs-tip')) {
-                resetAll(); clone.style.cursor = 'grab';
-            }
-        });
-
-        wrap.addEventListener('wheel', function() { clone.style.cursor = scale > 1 ? 'grab' : 'zoom-in'; });
-    })();
-
+    ImageZoom.init('browse-fs-overlay', 'browse-fs-zoom-wrap', 'browse-fs-img-clone');
 })();
 </script>

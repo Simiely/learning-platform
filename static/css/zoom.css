@@ -1,0 +1,62 @@
+/* ===================================================
+   Fullscreen image zoom overlay
+   =================================================== */
+
+.img-fs {
+    position: fixed;
+    inset: 0;
+    background: rgba(12,12,12,.94);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    cursor: pointer;
+}
+.img-fs.show { display: flex; }
+
+.img-fs .fs-emoji {
+    font-size: min(280px, 65vw);
+    line-height: 1;
+    filter: drop-shadow(0 6px 20px rgba(0,0,0,.5));
+}
+
+.img-fs .fs-close {
+    position: absolute;
+    top: calc(20px + var(--safe-top));
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.9);
+    color: #1a1a1a;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+
+.img-fs .fs-zoom-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+.img-fs .fs-zoom-wrap img {
+    display: block;
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+}
+
+.img-fs .fs-tip {
+    position: absolute;
+    bottom: 32px;
+    color: rgba(255,255,255,.7);
+    font-size: 14px;
+}

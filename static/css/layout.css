@@ -1,0 +1,251 @@
+/* ===================================================
+   Layout — navbar, container, messages, theme toggle, mode bar
+   =================================================== */
+
+.navbar {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+    padding-top: var(--safe-top);
+}
+
+.nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: 52px;
+}
+
+.nav-brand {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    text-decoration: none;
+    letter-spacing: .3px;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 999px;
+    transition: all .15s;
+}
+
+.nav-links a:hover { color: var(--primary); background: var(--tag-bg); }
+.nav-user { color: var(--primary); font-size: 13px; font-weight: 600; }
+.nav-logout {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font: inherit; font-size: 15px;
+    padding: 0;
+}
+.nav-logout:hover { color: var(--primary); }
+
+/* Theme toggle */
+.theme-toggle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    padding: 0;
+    transition: all .2s;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.theme-toggle:hover { border-color: var(--primary); color: var(--primary); }
+.theme-toggle:active { transform: scale(.92); }
+
+/* Container */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px 20px 60px;
+    flex: 1;
+    width: 100%;
+}
+
+/* Messages */
+.messages { margin-bottom: 16px; }
+.message {
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+.message-error { background: rgba(217,119,119,.12); color: #c0392b; }
+.message-success { background: rgba(255,146,146,.14); color: var(--primary); }
+
+/* ---- Mode top bar (browse / card / quiz) ---- */
+.mode-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.mode-badge {
+    background: var(--primary);
+    color: var(--on-primary);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 22px;
+    border-radius: 999px;
+    white-space: nowrap;
+    line-height: 1.3;
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    border: 1px solid var(--primary);
+}
+
+.mode-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.mode-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.mode-tab {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 22px;
+    border-radius: 999px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all .15s;
+    line-height: 1.3;
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+}
+
+@media (max-width: 480px) {
+    .mode-badge { font-size: 12px; padding: 8px 16px; min-height: 32px; }
+    .mode-tab   { font-size: 12px; padding: 8px 16px; min-height: 32px; }
+    .mode-bar   { gap: 8px; margin-bottom: 16px; }
+    .mode-right { gap: 8px; }
+}
+
+.mode-tab:active { border-color: var(--primary); color: var(--primary); }
+.mode-tab.accent { border-color: var(--accent); color: var(--accent); }
+.mode-tab.active-mode { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+
+.mode-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.reset-btn {
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--muted);
+    border: 1px solid transparent;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 22px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: var(--font);
+    white-space: nowrap;
+    transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    line-height: 1.3;
+}
+
+.reset-btn:active { background: var(--accent); color: #fff; }
+
+.mode-badge-reset {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--border);
+    cursor: pointer;
+    transition: all .15s;
+}
+.mode-badge-reset:active { background: var(--accent); }
+.mode-badge-reset:hover { opacity: 0.85; }
+
+/* ---- Shared pronunciation rows (cards + popup) ---- */
+.ph-line {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    background: var(--sound-bg);
+    color: var(--text);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background .15s, transform .15s;
+}
+.ph-line:active { background: var(--sound-bg-active); transform: scale(.99); }
+
+.ph-zhen { display: flex; gap: 10px; }
+
+.ph-cell {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    background: var(--sound-bg);
+    color: var(--text);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background .15s, transform .15s;
+}
+.ph-cell:active { background: var(--sound-bg-active); transform: scale(.99); }
+
+.ph-cell .ph-zh { font-size: 28px; font-weight: 700; color: var(--text); }
+.ph-cell .ph-en { font-size: 28px; color: var(--text); }
+.ph-line .ph-fact { font-size: 16px; color: var(--text); flex: 1; line-height: 1.55; }
+
+.ph-sound {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: transparent;
+    border: 2px solid rgba(255,146,146,.3);
+    color: var(--primary);
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 3px 10px rgba(255,146,146,.3);
+}
+.ph-sound.muted { opacity: .25; }
