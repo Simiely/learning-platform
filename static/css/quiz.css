@@ -2,6 +2,14 @@
    Quiz mode
    =================================================== */
 
+/* Full-viewport container (same as card mode) */
+.container.container-quiz {
+    padding: 0 20px;
+    height: calc(var(--vh, 1vh) * 100 - 52px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
 .container.container-quiz .mode-bar { flex: none; padding-top: 16px; }
 
 .quiz-page {

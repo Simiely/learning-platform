@@ -265,6 +265,8 @@ iPad 检测用 `screen.width >= 768`（物理像素），不用 `window.innerWid
 | Docker 部署后异常 | 元组顺序错 | 从 seed_data.py 校验 |
 | 音频 404 | 磁盘文件名与 DB 不一致 | seed_data 用 `_write_media_file()` 覆写 |
 | CSS 改了不生效 | Safari 强缓存 | 更新所有模板的 `?v=` 版本号 |
+| 练习模式容器塌缩 | quiz.css 缺少全视口样式 | 确认 `.container-quiz` 含 `height: calc(var(--vh)*100-52px)` |
+| 练习答题后音频混乱 | `playQuizAudio` 引用动态属性被覆盖 | 用闭包冻结题目快照 + `_quizSeqId` 防护 |
 
 ## License
 

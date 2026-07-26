@@ -789,6 +789,80 @@ function setViewportHeight() {
 
 ---
 
+## 练习模式音频逻辑修复（2026-07-26）
+
+### 问题
+
+练习模式答题后音频混乱：音效（答对滴滴答错下降音）和中文名称同时播放，听感不清。且快速连续答题时出现串音。
+
+### 根因
+
+`playQuizAudio()` 直接从 `this.currentQuestion` 读取数据。答题后 `this.current++`，用户点击"下一题"会改变 `this.currentQuestion`，导致延迟触发的音频播错了题目。
+
+### 修复
+
+两个关键改动：
+
+1. **题目数据冻结**：`selectAnswer()` 中将当前题目保存到局部变量 `q`，传给 `playQuizAudio(q)`，而非依赖 `this.currentQuestion`。后续切换题目不影响本次播放。
+
+2. **序列 ID 防护**（`_quizSeqId`）：每次调用 `playQuizAudio` 递增 ID，所有异步回调（probe `onReady`、英文 `setTimeout`）检查 ID 是否匹配，不匹配则丢弃。防止快速点击导致的串音。
+
+3. 音效和中文**同时触发**——无延迟，天然交叠符合听觉预期。
+
+### 关键代码
+
+```javascript
+selectAnswer(id) {
+    // ...
+    this.current++;
+    this.playQuizAudio(this.currentQuestion);
+},
+playQuizAudio(q) {
+    var self = this;
+    this._quizSeqId = (this._quizSeqId || 0) + 1;
+    var mySeqId = this._quizSeqId;
+    // 所有异步回调检查 self._quizSeqId !== mySeqId → return
+}
+```
+
+### 教训
+
+- 异步音频播放中，不能用组件的动态属性（`this.currentQuestion`），必须用闭包冻结的快照
+- 任何含 `setTimeout` 的音频序列都要加递增 ID 防止串音
+
+---
+
+## 练习模式容器适配（2026-07-26）
+
+### 问题
+
+模块化重构后，练习模式容器不再填满视口，高度塌缩。
+
+### 根因
+
+练习模式需要 `.container-card` 的全视口布局（`height: calc(var(--vh) * 100 - 52px)`），但这个类定义在 `cards.css` 中，练习页面只加载了 `quiz.css`。
+
+### 修复
+
+把全视口容器样式直接加到 `quiz.css` 的 `.container.container-quiz` 中，不再依赖 `cards.css`。模板中也移除 `container-card` 类，只用 `container-quiz`。
+
+```css
+.container.container-quiz {
+    padding: 0 20px;
+    height: calc(var(--vh, 1vh) * 100 - 52px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+```
+
+### 教训
+
+- CSS 文件拆分后，必须确保每个页面加载的 CSS 包含该页面所有的容器/布局样式
+- 不要跨页面共享容器类（如 `container-card`），每个页面应有完整独立的容器定义
+
+---
+
 ## 模块化重构记录（2026-07-26）
 
 ### 重构背景
