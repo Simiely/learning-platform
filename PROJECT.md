@@ -10,7 +10,7 @@
 
 更新项目内容（增减动物、修改科普、调整图片焦点）的第一步是编辑 **`ANIMALS.md`**。这是所有动物数据的主数据源，包含：
 
-- 41 只已上线动物（全部图片焦点已手动校准 ✅，含 iPhone / iPad 双套焦点）
+- 41 只已上线动物（全部图片焦点已手动校准 ✅，含 iPhone 竖屏 / iPad 竖屏 / iPad 横屏 三套焦点）
 - 中英文名、Emoji、图片/音频文件名、科普知识、图片焦点
 
 修改清单后，再同步更新 `seed_data.py` 里的 `ANIMALS` 表格，重新部署即可生效。Django 后端 + Alpine.js 前端，专为 iPad / iPhone 触屏设计。
@@ -40,10 +40,10 @@
 ```
 learning-platform/
 ├── apps/core/              # 核心应用
-│   ├── models.py           # Category, Item (含 image_position_ipad), LearningProgress, QuizAttempt
+│   ├── models.py           # Category, Item (含 image_position / image_position_ipad_portrait / image_position_ipad_landscape 三套焦点), LearningProgress, QuizAttempt
 │   ├── views.py            # 所有视图 + API（返回 iPhone/iPad 双焦点）
 │   └── management/commands/
-│       ├── seed_data.py    # 种子数据（41只动物），含 iPhone/iPad 双套焦点
+│       ├── seed_data.py    # 种子数据（41只动物），含 iPhone / iPad 竖屏 / iPad 横屏 三套焦点
 │       ├── sync_positions.py  # 每次部署同步图片焦点到数据库
 │       ├── detect_centers.py  # OpenCV 自动检测焦点（不要用 --force）
 │       └── ensure_media.py    # （已废弃，媒体现在从镜像bundle同步）
@@ -52,17 +52,19 @@ learning-platform/
 ├── templates/              # HTML 模板
 │   ├── base.html           # 公共布局
 │   ├── category_browse.html # 浏览模式
-│   ├── category_cards.html  # 卡片模式（含 card-zoom.js）
+│   ├── category_cards.html  # 卡片模式（含 image-zoom.js）
 │   ├── category_quiz.html   # 练习模式（含 confetti + audio）
 │   ├── browse_popup.html    # 浏览弹窗（共用）
 │   └── ...
 ├── static/
-│   ├── css/style.css       # 全局样式（CSS Variables，深色/浅色两个 token 集）
+│   ├── css/                 # 全局样式在 theme.css/layout.css/buttons.css/utils.css + 各页 css（style.css 为遗留未用文件）
 │   ├── js/
 │   │   ├── alpine.min.js   # Alpine.js 本地托管（不用 CDN！）
-│   │   ├── theme.js        # 三态主题切换
-│   │   ├── popup.js        # 浏览弹窗逻辑
-│   │   └── card-zoom.js    # 卡片图片缩放
+│   │   ├── audio-player.js  # 音频播放控制
+│   │   ├── confetti.js      # 答对礼花特效
+│   │   ├── image-zoom.js    # 图片缩放（浏览/卡片/练习共用）
+│   │   ├── ipad-detect.js   # iPad 横竖屏检测，切换对应焦点
+│   │   └── utils.js         # 通用工具（主题切换、emoji 取色等）
 │   └── ...
 ├── media/                  # 图片 + 音频素材（进 git）
 ├── Dockerfile
@@ -86,8 +88,8 @@ iOS Safari 对 `<button>` 元素有渲染偏差，即使 CSS 完全一致，尺�
 
 ### 图片焦点（image_position）
 
-- `seed_data.py` 中 ANIMALS 表格的最后一列是手动校准的 `image_position`（如 `"23% 47%"`）
-- 现在支持**iPhone / iPad 两套独立焦点**，`image_position`（iPhone）和 `image_position_ipad`（iPad）
+- `seed_data.py` 中 ANIMALS 表格的最后三列是手动校准的焦点：`image_position` / `image_position_ipad_portrait` / `image_position_ipad_landscape`（如 "23% 47%"）
+- 现在支持 **iPhone / iPad 竖屏 / iPad 横屏 三套独立焦点**：`image_position`（iPhone）、`image_position_ipad_portrait`（iPad 竖屏）、`image_position_ipad_landscape`（iPad 横屏）
 - `Item.image_position_checked = True` 标记手调值，`detect_centers` 不会覆盖
 - `sync_positions` 命令每次容器启动执行，从 seed_data 同步到数据库
 - 卡片模式：`centerPos()` 对纵向做 ×0.65 上偏补偿（动物脸部通常在看图片上半部分）
@@ -97,7 +99,7 @@ iOS Safari 对 `<button>` 元素有渲染偏差，即使 CSS 完全一致，尺�
 - 镜像自带 `/app/media-bundled`（.dockerignore 不排除 media/）
 - 每次启动 `rsync -ac` 从 bundled 同步到卷（checksum 比较，只传变化文件）
 - `sync_positions` 同步图片焦点
-- 数据（db + media）在卷 `/mnt/usb2/Configs/learning-platform/data`
+- 数据（db + media）在卷 `/mnt/usb2/Configs/learning-platform/data`（部署主机的 NAS 路径；换机器时改 `docker-compose.yml` 的 volumes 为本地路径）
 
 ## 常见坑
 
@@ -105,7 +107,7 @@ iOS Safari 对 `<button>` 元素有渲染偏差，即使 CSS 完全一致，尺�
 会覆盖手动校准的 `image_position`。如果需要调整焦点，直接改 `seed_data.py` 里的值。
 
 ### 2. CSS 改完 iPad 不生效
-Safari 强缓存。每次改 `style.css` 必须更新 `base.html` 里的 `?v=` 版本号。
+Safari 强缓存。每次改 CSS/JS 必须更新 `base.html` 里对应文件的 `?v=` 版本号。
 
 ### 3. 练习模式按钮溢出
 `quiz-feedback` 高度必须 ≥ 内容需求。内容 = padding+文字区+按钮边距+按钮高度。布局链 `container-card(overflow:hidden) → quiz-round(flex:1,min-height:0)`。调整后验证 `∑(flex:none) ≤ height(container-card)`。
