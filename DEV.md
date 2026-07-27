@@ -86,7 +86,7 @@ position: absolute; top: 10px; opacity: 0.5; pointer-events: none;
 ### 种子数据（seed_data）
 
 - `ANIMALS` 表格包含 **41 只动物**的完整数据：code、中英名、emoji、图片、三语音频、科普、iPhone 焦点 + iPad 竖屏/横屏双焦点
-- 每行 10 字段：`(name, en_name, emoji, img_file, audio_file, fact, image_position, image_position_ipad)`
+- 每行 10 字段：`(name, code, english_name, emoji, img_file, audio_file, fact, image_position, image_position_ipad_portrait, image_position_ipad_landscape)`
 - `seed_data --force` 覆盖已有数据；不加 `--force` 时检测到已有数据则跳过
 - `image_position_checked=True` 防止 `detect_centers` 覆盖手调值
 
