@@ -1,19 +1,19 @@
 # Lets Learn —— 幼儿互动学习卡片
 
-一个基于 **Django + Alpine.js** 的幼儿识字/认知闪卡平台，支持 **浏览、卡片、练习** 三种学习模式，专为触屏（iPad / iPhone）设计，无需登录即可使用。支持 41 种动物中英文对照学习，配三语自动发音。
+一个基于 **Django + Alpine.js** 的幼儿识字/认知闪卡平台，支持 **浏览、卡片、练习** 三种学习模式，专为触屏（iPad / iPhone）设计，无需登录即可使用。内置 41 种动物的中英文对照学习，配三语自动发音。
 
 ## 功能特性
 
 - **浏览模式**：拼音排序的卡片网格，点击弹出全屏详情（支持图片缩放 + 前后翻页）+ 自动发音
-- **卡片模式**：全屏沉浸式翻卡，随机起始 + 拼音排序，图片缩放+拖拽（滚轮/双指缩放，鼠标/单指平移）
-- **练习模式**：看图选词，即时反馈，10 题一组不重复。答对撒花 + 音效，答错柔和提示 + 显示正确答案
+- **卡片模式**：全屏沉浸式翻卡，随机起始 + 拼音排序，图片缩放 + 拖拽（滚轮/双指缩放，鼠标/单指平移）
+- **练习模式**：看图选词（image-to-name），即时反馈，10 题一组不重复。答对撒花 + 音效，答错柔和提示 + 显示正确答案
 - **三语发音**：中文名称 / 英文名称 / 科普知识（中文），自动连播，每只动物独立音频
-- **智能配色**：浏览方块背景基于 emoji 平均色动态生成（Pillow + NumPy）
+- **智能配色**：浏览方块背景基于 emoji 平均色在渲染时动态生成（Pillow）
 - **三态主题**：深色 → 浅色 → 自动（跟随系统），偏好记忆到 localStorage
-- **图片焦点**：每张图片手动校准视觉中心，iPhone / iPad 竖屏 / iPad 横屏三套独立焦点，动物脸部始终可见
+- **图片焦点**：每张图片支持 iPhone / iPad 竖屏 / iPad 横屏三套独立视觉焦点（手动校准为主，OpenCV 自动检测可选），动物脸部始终可见
 - **账号系统**：注册 / 登录 / 学习进度追踪（可选），未登录也能用全部功能
 
-## 快速开始
+## 快速开始（本地开发）
 
 ```bash
 git clone https://github.com/Simiely/learning-platform.git
@@ -28,6 +28,8 @@ python manage.py runserver 0.0.0.0:8000
 
 打开 `http://localhost:8000` 即可使用。
 
+> 本地开发用 `seed_data` 做一次性全量写入（会清空后重建动物数据）；Docker 部署走 `seed_sync` 增量同步，二者不要混用。
+
 ## 使用方法
 
 1. 首页点击「动物」进入，三种模式切换（页面顶部模式栏）：
@@ -35,47 +37,77 @@ python manage.py runserver 0.0.0.0:8000
    - **卡片** `/category/animals/cards/`：左右按钮翻页，随机起始，进场自动播放中英文
    - **练习** `/category/animals/quiz/`：看图选词，10 题一组，答对有礼花特效
 2. 点击中文 / 英文 / 科普文字行即可播放对应语音
-3. 右上角按钮切换主题：☀️ 深色 → 🌙 浅色 → 🌓 跟随系统
+3. 右上角按钮切换主题：深色 → 浅色 → 跟随系统
 4. 浏览模式「再来一次」重置已查看状态（未登录用 localStorage 记录）
 5. 修改动物数据（焦点、科普等）：编辑 `seed_data.py` → `python manage.py seed_sync`（增量更新，不删数据）
 
-## 部署 & 更新
+## 部署（Docker）
+
+镜像由 GitHub Actions 在推送 `master` 时自动构建并推送到 `ghcr.io/simiely/learning-platform:latest`。
+
+### ⚠️ 部署前必读
+
+1. **数据卷路径是硬编码的，必须先改！**
+   仓库自带的 `docker-compose.yml` 把数据卷挂到了作者自己的 NAS 路径：
+   ```yaml
+   volumes:
+     - /mnt/usb2/Configs/learning-platform/data/db:/app/db
+     - /mnt/usb2/Configs/learning-platform/data/media:/app/media
+   ```
+   在你自己的机器上部署前，请改成你主机上的路径（推荐相对路径 `./data`）：
+   ```yaml
+   volumes:
+     - ./data/db:/app/db
+     - ./data/media:/app/media
+   ```
+   否则数据会写到不存在的 `/mnt/usb2/...` 目录（容器以 `root` 运行会自行创建该目录，迁移/重启后容易丢失或错乱）。
+
+2. **默认管理员账号**
+   首次启动，容器会用环境变量 `DJANGO_SUPERUSER_USERNAME` / `DJANGO_SUPERUSER_PASSWORD`（默认 `admin` / `admin1234`）自动创建一个超级管理员。生产环境务必在 `.env` 中改掉默认密码，或在启动后用 `python manage.py changepassword admin` 修改。
+
+3. **SECRET_KEY**
+   仅当 `DJANGO_DEBUG=false`（生产）时才**必须**设置 `DJANGO_SECRET_KEY`。
+   默认 `docker-compose.yml` 里 `DJANGO_DEBUG` 为 `true`，会用随机/开发密钥，可直接 `up`。
+   生产部署请设 `DJANGO_DEBUG=false` 并配置 `DJANGO_SECRET_KEY` 与反向代理（DEBUG 关闭后 Django 不再托管 `/static/` 与 `/media/`）。
+
+### 首次部署
 
 ```bash
-# 首次部署（需 .env 中设置 DJANGO_SECRET_KEY）
 docker compose up -d
-
-# 更新已有部署
-docker compose pull && docker compose up -d
-# 容器自动 migrate + seed_sync，不丢数据
 ```
 
-> **首次部署时**，数据库为空，容器自动执行 seed_data 填充 41 只动物数据。
-> **更新部署时**，不需要删数据库。seed_sync 只在发现新动物时追加。
+容器启动（`docker-entrypoint.sh`）会自动依次执行：
+
+1. `collectstatic` 收集静态文件
+2. `migrate` 迁移数据库
+3. 从镜像内置的 `media-bundled` 副本 `rsync` 媒体到数据卷（仅传变化文件）
+4. `seed_sync` 写入 41 只动物（增量更新，不会删除已有数据）
+5. 创建默认管理员（如已存在则跳过）
+6. 用 gunicorn 在容器内的 `0.0.0.0:8000` 启动
+
+- 访问 `http://服务器IP:2511`（宿主机 2511 映射到容器 8000）。
+- 数据持久化在上面的数据卷里，容器重建不丢数据。
+
+### 更新部署
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+`docker-compose.yml` 已配置 `pull_policy: always`，Dpanel 点「更新」等价于 restart + pull。
+
+## 技术栈
 
 | 层级 | 技术 |
 |------|------|
-| 后端 | Django 4.2.x, Python 3.12+ |
-| 前端 | Alpine.js 3.14（本地托管，不用 CDN）, 原生 CSS（CSS Variables） |
+| 后端 | Django 4.2.20, Python 3.12+ |
+| 前端 | Alpine.js 3.14.8（本地托管，不用 CDN）, 原生 CSS（CSS Variables） |
 | 数据库 | SQLite（单文件，Docker 卷持久化） |
-| 音频生成 | edge-tts（Microsoft 神经网络语音，中文 Xiaoxiao / 英文 Jenny） |
+| 生产服务器 | gunicorn（仅 Docker 内使用） |
+| 音频素材 | 预生成并随仓库提交（中文 / 英文 / 科普 三套 mp3）；`edge-tts` 仅用于离线重新生成音频，不是运行时依赖，也未列入 `requirements.txt` |
 | 图像处理 | Pillow, NumPy, OpenCV（headless） |
 | 拼音排序 | pypinyin |
 | 容器化 | Docker + GitHub Actions（自动构建推送 ghcr.io） |
-
-## Docker 部署
-
-支持一键 Docker 部署，镜像通过 GitHub Actions 自动构建推送。
-
-```bash
-docker compose up -d
-```
-
-访问 `http://服务器IP:2511`。数据持久化到 `./data/`（db + media），容器重建不丢数据。
-
-**更新部署**：`docker compose pull && docker compose up -d`
-
-> `.env` 文件中需设置 `DJANGO_SECRET_KEY`。
 
 ## 项目结构
 
@@ -97,7 +129,7 @@ learning-platform/
 │   ├── index.html              # 首页（板块卡片）
 │   ├── category_browse.html    # 浏览模式（Emoji 方块网格）
 │   ├── category_cards.html     # 卡片模式（翻卡 + 缩放拖拽）
-│   ├── category_quiz.html      # 练习模��（看图选词 + 礼花）
+│   ├── category_quiz.html      # 练习模式（看图选词 + 礼花）
 │   ├── browse_popup.html       # 浏览弹窗（图片缩放 + 发音）
 │   ├── login.html / register.html / profile.html
 ├── static/
@@ -121,14 +153,16 @@ learning-platform/
 │       ├── audio-player.js     # 统一音频播放（基于时长自动连播）
 │       ├── image-zoom.js       # 图片缩放/拖拽（滚轮+双指+拖拽）
 │       └── confetti.js         # 礼花特效 + Web Audio 音效
-├── media/                      # 图片 + 音频素材（41 只动物）
+├── media/                      # 图片 + 音频素材（41 只动物，进 git）
 ├── ANIMALS.md                  # 动物数据主清单（含三套焦点）
 ├── DEV.md                      # 开发笔记（详细踩坑记录）
 ├── Dockerfile
 ├── docker-entrypoint.sh
-├── docker-compose.yml
+├── docker-compose.yml          # ⚠️ 数据卷路径为作者 NAS，部署前需改
 └── requirements.txt
 ```
+
+> 注：`static/css/style.css` 是模块化重构前的旧版单文件样式，**未在任何模板中加载**（全局样式现由 `theme/layout/buttons/utils.css` 承载，各页面样式拆分到对应文件），仅作参考保留。
 
 ## 数据清单
 
@@ -171,14 +205,14 @@ python manage.py seed_sync
 ```python
 ('中文名', 'code', '英文名', 'emoji', '图片文件', '音频文件',
  '科普知识',
- 'iphone焦点',      # iPhone 竖屏，如 '50% 50%'
- 'ipad竖焦点',      # iPad 竖屏，如 '50% 40%'
- 'ipad横焦点'),     # iPad 横屏，如 '50% 30%'
+ 'image_position',          # iPhone / 通用焦点，如 '13% 47%'
+ 'image_position_ipad_portrait',   # iPad 竖屏，如 '23% 37%'
+ 'image_position_ipad_landscape'), # iPad 横屏，如 '23% 47%'
 ```
 
 - code 格式：`english_lower_YYYYMMDDNN`（如 `polar_bear_2026072401`），全局唯一
 - 所有焦点格式：`'X% Y%'`，X=水平（左0%→右100%），Y=垂直（上0%→下100%）
-- **元组解包顺序绝对不能错**：第 8、9、10 个分别是 iPhone / iPad 竖 / iPad 横
+- **元组解包顺序绝对不能错**：第 8、9、10 个分别是 iPhone（通用）/ iPad 竖 / iPad 横
 
 ### 前端架构（模块化）
 
@@ -200,6 +234,8 @@ python manage.py seed_sync
 | `profile.css` | 统计页 | 统计瓷砖 |
 | `zoom.css` | 卡片+浏览 | 全屏图片缩放遮罩 |
 
+全局样式在 `base.html` 的 `<head>` 中通过 `{% block extra_css %}` 加载；页面专属 CSS 在各模板的 `extra_css` 块中加载。
+
 **JS 共享模块**：
 | 模块 | 导出 | 用途 |
 |------|------|------|
@@ -210,8 +246,7 @@ python manage.py seed_sync
 
 **关键设计规则**：
 - `ipad-detect.js` 和 `utils.js` 在 `<head>` 中同步加载（无 `defer`），确保页面内联脚本执行前可用
-- 页面专属模块（如 `audio-player.js`、`image-zoom.js`）通过 `{% block extra_css %}` 在 head 中同步加载
-- **CSS 版本号**：修改任何 CSS 后，更新所有模板中的 `?v=YYYYMMDDx` 版本号，否则 Safari 强缓存不更新
+- **CSS 版本号**：修改任何 CSS 后，更新所有模板中的 `?v=YYYYMMDDx` 版本号（当前为 `?v=20260726b`），否则 Safari 强缓存不更新
 
 ### 前端焦点检测
 
@@ -251,7 +286,8 @@ iPad 检测用 `screen.width >= 768`（物理像素），不用 `window.innerWid
 
 - 推送到 `master` 分支自动触发 GitHub Actions → 构建镜像 → 推送到 ghcr.io
 - `cancel-in-progress: true`，同一分支多次推送只保留最后一次构建
-- 容器入口 `/docker-entrypoint.sh` 自动执行 migrate + seed_sync
+- 容器入口 `/docker-entrypoint.sh` 自动执行 migrate + seed_sync + 媒体同步 + 创建默认管理员
+- 镜像内置 `/app/media-bundled` 副本，启动时用 `rsync` 同步到数据卷（仅传变化文件）
 
 ### 常见错误速查
 
