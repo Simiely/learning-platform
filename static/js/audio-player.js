@@ -51,7 +51,7 @@
         }
 
         function playSequence(items, idx, gapSeconds) {
-            if (arguments.length < 3) gapSeconds = 0.5;
+            if (arguments.length < 3) gapSeconds = 0.1;
 
             // Cancel anything from a previous sequence
             cancelPending();

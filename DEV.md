@@ -85,7 +85,7 @@ position: absolute; top: 10px; opacity: 0.5; pointer-events: none;
 
 ### 种子数据（seed_data）
 
-- `ANIMALS` 表格包含 **41 只动物**的完整数据：code、中英名、emoji、图片、三语音频、科普、iPhone 焦点 + iPad 竖屏/横屏双焦点
+- `ANIMALS` 表格包含 **53 只动物**的完整数据：code、中英名、emoji、图片、三语音频、科普、iPhone 焦点 + iPad 竖屏/横屏双焦点
 - 每行 10 字段：`(name, code, english_name, emoji, img_file, audio_file, fact, image_position, image_position_ipad_portrait, image_position_ipad_landscape)`
 - `seed_data --force` 覆盖已有数据；不加 `--force` 时检测到已有数据则跳过
 - `image_position_checked=True` 防止 `detect_centers` 覆盖手调值
@@ -105,7 +105,7 @@ position: absolute; top: 10px; opacity: 0.5; pointer-events: none;
 - 登录页 open redirect 加 `url_has_allowed_host_and_scheme` 校验
 - `DEBUG` 默认 `False`，`SECRET_KEY` 强制环境变量
 - `ALLOWED_HOSTS` 默认 `localhost`
-- docker-compose 密码改为环境变量
+- docker compose 密码改为环境变量
 - 登出改为 POST 表单
 
 ---
@@ -265,7 +265,7 @@ viewport meta 加 `user-scalable=no`，阻止浏览器默认双击缩放。
 
 ### 动物数据清单（2026-07-23）
 
-`ANIMALS.md` 是所有动物数据的主数据源（21 已上线 + 20 新增 = 共 41 只）。
+`ANIMALS.md` 是所有动物数据的主数据源（21 已上线 + 20 新增 + 12 第3批 = 共 53 只）。
 修改动物内容（增减、科普、焦点）先编辑这个文件，再同步到 `seed_data.py`。
 
 **焦点调整工作流**（2026-07-24 优化）：
@@ -360,7 +360,7 @@ viewport meta 加 `user-scalable=no`，阻止浏览器默认双击缩放。
    # 不加 w 参数 = 原始分辨率
    ```
 
-3. **裁剪正方形 + 长边 ≥ 3000px**
+3. **长边 ≥ 3000px，不裁剪，保持原始比例**
 
 4. **清理候选项**
 
@@ -684,7 +684,7 @@ grep -l "getImagePos\|image_position_ipad\|screen.width >= 768" templates/*.html
 docker compose logs learning-platform
 # 确认 seed_sync 执行
 docker compose exec learning-platform python manage.py shell -c "from apps.core.models import Item; print(Item.objects.count())"
-# 应该输出 41
+# 应该输出 53
 ```
 
 ### 5. 本地开发环境
@@ -954,14 +954,14 @@ CSS 文件通过 `?v=YYYYMMDDx` 版本号绕过 Safari 强缓存。修改 CSS �
 
 ### 需求
 
-41 只动物全部混在一个网格中，浏览时不方便查找。需要按类别分组显示。
+53 只动物全部混在一个网格中，浏览时不方便查找。需要按类别分组显示。
 
 ### 方案选择
 
 选择 **方案 B（顶部 Tabs 切换）**，仅修改浏览模式，不影响卡片和练习模式：
 
 ```
-[ 全部 (41) | 🏠 家里和农场 (9) | 🌍 野生动物 (20) | 🌊 海洋动物 (6) | 🦎 爬虫和昆虫 (6) ]
+[ 全部 (53) | 🏠 家里和农场 (10) | 🌍 野生动物 (21) | 🌊 海洋动物 (10) | 🦎 爬虫和昆虫 (12) ]
 ```
 
 点击 Tab 切换，网格自动显示/隐藏对应组的动物。
@@ -1003,7 +1003,7 @@ CSS 文件通过 `?v=YYYYMMDDx` 版本号绕过 Safari 强缓存。修改 CSS �
    ```
    `to_dict()` 新增 `"group": self.group or ""`
 
-2. **`seed_data.py`** — 元组从 10 字段扩展为 11 字段，`group` 作为第 11 位。41 只动物按组重排（同组在一起），方便后续维护
+2. **`seed_data.py`** — 元组从 10 字段扩展为 11 字段，`group` 作为第 11 位。53 只动物按组重排（同组在一起），方便后续维护
 
 3. **`views.py`** — `category_browse_view` 新增 `group_counts` 统计和 `total` 传递给模板
 
