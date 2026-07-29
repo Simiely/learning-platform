@@ -31,6 +31,13 @@ class Category(models.Model):
 
 
 class Item(models.Model):
+    GROUP_CHOICES = [
+        ('farm', '🏠 家里和农场'),
+        ('wild', '🌍 野生动物'),
+        ('ocean', '🌊 海洋动物'),
+        ('reptile', '🦎 爬虫和昆虫'),
+    ]
+
     category = models.ForeignKey(
         Category, on_delete=models.CASCADE,
         related_name='items', verbose_name='所属模块'
@@ -78,6 +85,11 @@ class Item(models.Model):
         verbose_name='科普语音'
     )
     sort_order = models.IntegerField(default=0, verbose_name='排序')
+    group = models.CharField(
+        max_length=20, blank=True, default='', verbose_name='浏览分组',
+        choices=GROUP_CHOICES,
+        help_text='浏览模式中按组分开展示'
+    )
 
     class Meta:
         verbose_name = '学习条目'
@@ -102,6 +114,7 @@ class Item(models.Model):
             "audio_zh": self.audio.url if self.audio else "",
             "audio_en": self.audio_en.url if self.audio_en else "",
             "audio_fact": self.audio_fact.url if self.audio_fact else "",
+            "group": self.group or "",
         }
 
 

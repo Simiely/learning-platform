@@ -3,7 +3,7 @@
 {% block title %}{{ category.name }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/browse.css' %}?v=20260726b">
+<link rel="stylesheet" href="{% static 'css/browse.css' %}?v=20260728a">
 <link rel="stylesheet" href="{% static 'css/popup.css' %}?v=20260726b">
 <link rel="stylesheet" href="{% static 'css/zoom.css' %}?v=20260726b">
 <script src="{% static 'js/audio-player.js' %}"></script>
@@ -23,9 +23,19 @@
     </div>
 </div>
 
+<!-- 分组 Tabs -->
+<div class="group-tabs" id="group-tabs-{{ category.slug }}">
+    <button class="group-tab active" data-group="all" onclick="filterGroup(this, 'all')">全部 ({{ total }})</button>
+    <button class="group-tab" data-group="farm" onclick="filterGroup(this, 'farm')">🏠 家里和农场 ({{ group_counts.farm }})</button>
+    <button class="group-tab" data-group="wild" onclick="filterGroup(this, 'wild')">🌍 野生动物 ({{ group_counts.wild }})</button>
+    <button class="group-tab" data-group="ocean" onclick="filterGroup(this, 'ocean')">🌊 海洋动物 ({{ group_counts.ocean }})</button>
+    <button class="group-tab" data-group="reptile" onclick="filterGroup(this, 'reptile')">🦎 爬虫和昆虫 ({{ group_counts.reptile }})</button>
+</div>
+
 <div class="browse-grid" id="browse-grid-{{ category.slug }}">
     {% for item in items %}
     <div class="b-tile" data-item-id="{{ item.id }}"
+         data-group="{{ item.group }}"
          data-item-name="{{ item.name|escapejs }}"
          data-item-en="{{ item.english_name|escapejs }}"
          data-item-emoji="{{ item.emoji|escapejs }}"
@@ -99,6 +109,24 @@
         }
         showPopup(browseItems, idx);
         fetch('/api/mark-viewed/' + id + '/', {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}}).catch(function(){});
+    };
+
+    // ---- 分组过滤 ----
+    window.filterGroup = function(btn, group) {
+        // 切换 active 样式
+        document.querySelectorAll('#group-tabs-' + slug + ' .group-tab').forEach(function(t) {
+            t.classList.remove('active');
+        });
+        btn.classList.add('active');
+
+        // 显示/隐藏瓷砖
+        document.querySelectorAll('#browse-grid-' + slug + ' .b-tile').forEach(function(tile) {
+            if (group === 'all' || tile.getAttribute('data-group') === group) {
+                tile.style.display = '';
+            } else {
+                tile.style.display = 'none';
+            }
+        });
     };
 })();
 </script>

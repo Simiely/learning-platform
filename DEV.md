@@ -947,3 +947,98 @@ CSS 文件通过 `?v=YYYYMMDDx` 版本号绕过 Safari 强缓存。修改 CSS �
 | CSS 模块 | 12 | theme, layout, buttons, utils, index, browse, popup, cards, quiz, auth, profile, zoom |
 | JS 模块 | 5 | utils, ipad-detect, audio-player, image-zoom, confetti（+ alpine.min.js） |
 | 模板 | 9 | base, index, category_browse, category_cards, category_quiz, browse_popup, login, register, profile |
+
+---
+
+## 浏览模式分组 Tabs（2026-07-28）
+
+### 需求
+
+41 只动物全部混在一个网格中，浏览时不方便查找。需要按类别分组显示。
+
+### 方案选择
+
+选择 **方案 B（顶部 Tabs 切换）**，仅修改浏览模式，不影响卡片和练习模式：
+
+```
+[ 全部 (41) | 🏠 家里和农场 (9) | 🌍 野生动物 (20) | 🌊 海洋动物 (6) | 🦎 爬虫和昆虫 (6) ]
+```
+
+点击 Tab 切换，网格自动显示/隐藏对应组的动物。
+
+### 零交叉分组设计
+
+避免"企鹅既是鸟类又是海洋动物"式的交叉问题，按 **生活场景（在哪里见到）** 划分：
+
+| 分组 | slug | 数量 | 划分逻辑 |
+|------|------|------|---------|
+| 🏠 家里和农场 | `farm` | 9 | 孩子日常能接触到的家养/农场动物：狗猫兔马牛羊鸡鸭猪 |
+| 🌍 野生动物 | `wild` | 20 | 动物园或自然纪录片：狮虎象长颈鹿斑马熊猫猴子，含飞鸟（鹰/猫头鹰/鹦鹉） |
+| 🌊 海洋动物 | `ocean` | 6 | 海洋环境：海豚鲸鲨鱼企鹅螃蟹 |
+| 🦎 爬虫和昆虫 | `reptile` | 6 | 小型爬行类：蛇鳄鱼青蛙乌龟蝴蝶蜜蜂 |
+
+### 关键决策点
+
+- 企鹅 → 海洋动物（孩子脑海中关联南极/海洋/冰块，而非鸟类）
+- 鹰/猫头鹰/鹦鹉 → 野生动物（在自然或动物园中见到）
+- 鳄鱼 → 爬虫组（虽然凶猛，但生物学分类是爬行动物）
+- 松鼠 → 野生动物（森林中见到）
+
+### 实现
+
+**后端改动**：
+
+1. **`models.py`** — `Item` 模型新增 `group` 字段
+   ```python
+   GROUP_CHOICES = [
+       ('farm', '🏠 家里和农场'),
+       ('wild', '🌍 野生动物'),
+       ('ocean', '🌊 海洋动物'),
+       ('reptile', '🦎 爬虫和昆虫'),
+   ]
+   group = models.CharField(
+       max_length=20, blank=True, default='',
+       choices=GROUP_CHOICES, verbose_name='浏览分组'
+   )
+   ```
+   `to_dict()` 新增 `"group": self.group or ""`
+
+2. **`seed_data.py`** — 元组从 10 字段扩展为 11 字段，`group` 作为第 11 位。41 只动物按组重排（同组在一起），方便后续维护
+
+3. **`views.py`** — `category_browse_view` 新增 `group_counts` 统计和 `total` 传递给模板
+
+**前端改动**：
+
+4. **`category_browse.html`** — 在 `.mode-bar` 和 `.browse-grid` 之间插入 Tabs 栏。每个 `.b-tile` 加 `data-group` 属性。JS 过滤逻辑：
+   ```javascript
+   window.filterGroup = function(btn, group) {
+       document.querySelectorAll('.group-tab').forEach(t => t.classList.remove('active'));
+       btn.classList.add('active');
+       document.querySelectorAll('.b-tile').forEach(tile => {
+           tile.style.display = (group === 'all' || tile.dataset.group === group) ? '' : 'none';
+       });
+   };
+   ```
+
+5. **`browse.css`** — 新增胶囊按钮样式（`.group-tabs` 用 flex-wrap 自适应换行，`.group-tab` 选中态用 `--primary` 粉色）
+
+### 迁移步骤
+
+```bash
+# 1. 加 group 字段
+python manage.py makemigrations
+python manage.py migrate
+
+# 2. 重新导入带分组的数据
+python manage.py seed_data --force
+
+# 后续加新动物时，seed_data 元组第 11 位就是分组
+```
+
+### 注意事项
+
+- 每组必须 ≥ 4 只（练习模式最低要求），当前最小 6 只 ✓
+- 分组 Tabs 只在浏览模式显示，卡片和练习模式不受影响
+- visited 状态跨组保持，切换 Tab 不会丢失
+- group 字段使用 Django choices 枚举，防止脏数据
+- 新增动物时别忘了填第 11 个字段 group

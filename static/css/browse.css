@@ -1,7 +1,42 @@
 /* ===================================================
-   Browse mode — Tile Grid
+   Browse mode — Tile Grid & Group Tabs
    =================================================== */
 
+/* ---- 分组 Tabs ---- */
+.group-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    padding: 0 2px;
+}
+
+.group-tab {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+    font-family: var(--font);
+    white-space: nowrap;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.group-tab:active {
+    transform: scale(.96);
+}
+
+.group-tab.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+/* ---- 浏览网格 ---- */
 .browse-grid {
     display: grid;
     gap: 16px;

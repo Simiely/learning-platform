@@ -17,11 +17,9 @@ from django.views.decorators.http import require_POST
 from .image_utils import _emoji_color, _detect_image_center, _hash_tile_color
 from .models import Category, Item, LearningProgress, QuizAttempt
 
-
 def index_view(request: Any) -> Any:
     categories = Category.objects.prefetch_related("items").all()
     return render(request, "index.html", {"categories": categories})
-
 
 def category_browse_view(request: Any, slug: str) -> Any:
     category = get_object_or_404(Category, slug=slug)
@@ -38,12 +36,24 @@ def category_browse_view(request: Any, slug: str) -> Any:
 
     items_json = json.dumps([it.to_dict() for it in items])
 
+    # 统计每个分组的数量
+    group_counts = {"farm": 0, "wild": 0, "ocean": 0, "reptile": 0}
+    for it in items:
+        g = it.group or ""
+        if g in group_counts:
+            group_counts[g] += 1
+
     return render(
         request,
         "category_browse.html",
-        {"category": category, "items": items, "items_json": items_json},
+        {
+            "category": category,
+            "items": items,
+            "items_json": items_json,
+            "total": len(items),
+            "group_counts": group_counts,
+        },
     )
-
 
 def category_cards_view(request: Any, slug: str) -> Any:
     category = get_object_or_404(Category, slug=slug)
@@ -65,7 +75,6 @@ def category_cards_view(request: Any, slug: str) -> Any:
         },
     )
 
-
 def item_detail_api(request: Any, item_id: int) -> JsonResponse:
     item = get_object_or_404(Item, id=item_id)
     if request.user.is_authenticated:
@@ -80,7 +89,6 @@ def item_detail_api(request: Any, item_id: int) -> JsonResponse:
             progress.save(update_fields=["view_count", "learned"])
     return JsonResponse(item.to_dict())
 
-
 def reset_visited(request: Any, slug: str) -> JsonResponse:
     """Reset visited state for all items in a category.
 
@@ -88,7 +96,6 @@ def reset_visited(request: Any, slug: str) -> JsonResponse:
     on the server but exists so the client can POST without errors.
     """
     return JsonResponse({"status": "ok"})
-
 
 def mark_viewed(request: Any, item_id: int) -> JsonResponse:
     if request.method == "POST":
@@ -105,7 +112,6 @@ def mark_viewed(request: Any, item_id: int) -> JsonResponse:
                 progress.save(update_fields=["view_count", "learned"])
         return JsonResponse({"status": "ok"})
     return JsonResponse({"status": "error"}, status=400)
-
 
 def category_quiz_view(request: Any, slug: str) -> Any:
     category = get_object_or_404(Category, slug=slug)
@@ -134,7 +140,6 @@ def category_quiz_view(request: Any, slug: str) -> Any:
         "category_quiz.html",
         {"category": category, "quiz_type": quiz_type, "item_count": len(items)},
     )
-
 
 def quiz_question_api(request: Any, slug: str) -> JsonResponse:
     category = get_object_or_404(Category, slug=slug)
@@ -195,7 +200,6 @@ def quiz_question_api(request: Any, slug: str) -> JsonResponse:
         ],
     }
     return JsonResponse(data)
-
 
 @require_POST
 def quiz_submit_batch(request: Any, slug: str) -> JsonResponse:
