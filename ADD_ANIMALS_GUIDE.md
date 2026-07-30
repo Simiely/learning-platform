@@ -202,9 +202,39 @@ python manage.py seed_data --force
 
 ## Pexels 图片搜索与下载
 
-> 推荐使用 Pexels（免费可商用）。Pexels 网站有 Cloudflare 反爬保护，需用 Playwright + stealth。
+> 使用 **Pexels 官方 API**（首选）搜索图片素材。免费注册 https://www.pexels.com/api/ 获取 API Key。
+> ⚠️ 免费版每月仅 200 次请求，务必节约使用，每次只搜 1 页（per_page=20）。
 
-### 搜索参考缩略图（Phase 2 用）
+### 方案 A：Pexels 官方 API（✅ 首选）
+
+```python
+import requests
+
+API_KEY = "你的API_KEY"  # 从 https://www.pexels.com/api/ 获取
+headers = {"Authorization": API_KEY}
+
+# 搜索：每页 20 张，只取 page=1
+url = f"https://api.pexels.com/v1/search?query=jellyfish&per_page=20&page=1"
+data = requests.get(url, headers=headers).json()
+
+for p in data["photos"]:
+    pid = p["id"]
+    alt = (p.get("alt") or "")[:55]
+    thumb = p["src"]["tiny"]  # 小图 URL
+    print(f"ID:{pid}  {alt}")
+    print(f"  小图: {thumb}")
+    print(f"  原图: https://images.pexels.com/photos/{pid}/pexels-photo-{pid}.jpeg")
+```
+
+API 返回的结构化 JSON 包含：
+- `id` — 照片 ID（用于下载原图）
+- `alt` — 图片描述（确认是否匹配目标动物）
+- `src.tiny` / `src.small` / `src.medium` — 不同尺寸的缩略图
+- `width` / `height` — 原始分辨率
+
+### 方案 B：Playwright 自动化搜索（备选）
+
+如果 API 额度用完或不可用，用 Playwright + stealth 绕过 Cloudflare 直接搜索：
 
 ```bash
 pip install playwright playwright-stealth
@@ -214,6 +244,8 @@ python -m playwright install chromium
 搜索脚本见 `scripts/pexels_search.py`，替换动物名即可使用。
 
 ### 下载高清原图（用户确认后）
+
+用户选中图片后，下载原图到 `media/images/`：
 
 ```python
 import urllib.request, ssl
