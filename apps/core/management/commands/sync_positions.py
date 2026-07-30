@@ -21,7 +21,7 @@ class Command(BaseCommand):
             'image_position_ipad_landscape': 'img_pos_ipad_landscape',
         }
 
-        for name, code, english_name, emoji, img_file, audio_file, fact, img_pos, img_pos_ipad_portrait, img_pos_ipad_landscape in ANIMALS:
+        for name, code, english_name, emoji, img_file, audio_file, fact, img_pos, img_pos_ipad_portrait, img_pos_ipad_landscape, group in ANIMALS:
             try:
                 item = Item.objects.get(code=code)
             except Item.DoesNotExist:
