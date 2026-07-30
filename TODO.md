@@ -10,23 +10,23 @@
 ```bash
 pip install -r requirements.txt
 python manage.py migrate            # 应用迁移 0012，建立 Item.group 字段
-python manage.py seed_data --force  # 确定性重建 53 只动物 + 媒体关联（不依赖本地库）
+python manage.py seed_data --force  # 确定性重建 61 只动物 + 媒体关联（不依赖本地库）
 python manage.py collectstatic      # 用 gunicorn 生产部署时需要
 ```
-执行后状态 = 本地当前状态（53 只、4 分组、每张图 + 3 段语音齐全）。
+执行后状态 = 本地当前状态（61 只、4 分组、每张图 + 3 段语音齐全）。
 
 ### B. ALLOWED_HOSTS 补域名 ⚠️
 `config/settings.py` 目前只含 `127.0.0.1`。部署到真实服务器前，必须通过环境变量或配置把
 服务器域名 / IP 加入 `ALLOWED_HOSTS`，否则 Django 拒访。
 
-### C. 图片焦点校准（可选优化）
-第3批 12 只新动物使用默认焦点 `50% 50%`。若某只构图偏了，改
-`apps/core/management/commands/seed_data.py` 对应元组的焦点值，再跑 `seed_data --force`。
-焦点约定见 `ANIMALS.md`。
+### C. 图片焦点校准
+第3~5批 31 只动物目前已校准焦点。如需微调，改
+`apps/core/management/commands/seed_data.py` 对应元组的焦点值，再跑 `python manage.py sync_positions`。
+焦点约定见 `DEVELOPER.md`。
 
-### D. 后续动物批次（未启动）
-- **中优先级 8 种**：`deer` 已有候选小图（`new-animals/references/deer/`），待选原图 + 音频 + 写 seed。
-- **精选 6 种**：待规划。
+### D. 后续动物批次
+- **中优先级 8 种**：✅ **已全部上线**（第4批梅花鹿 + 第5批棕熊/大猩猩/孔雀/火烈鸟/天鹅/萤火虫/蜘蛛）。
+- **精选 6 种**：水母、海星、蝙蝠、树懒、水獭、老鼠，待规划。
 - 音频生成工具 `gen_audio.py`（仓库根目录）可直接复用：在 ANIMALS 列表追加
   `(base, 中文名, 英文名, 科普文案)`，运行 `python gen_audio.py` 即可。
 - 图片下载工具 `download_unsplash.py`（仓库根目录）用于获取候选参考图。
