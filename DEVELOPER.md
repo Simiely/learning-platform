@@ -169,6 +169,17 @@ python manage.py seed_sync
  'group'),                           # farm/wild/ocean/reptile
 ```
 
+### ⚠️ 修改元组结构必须同步更新这些文件
+
+`seed_data.py` 的 ANIMALS 元组被多处代码直接解包使用。**增删字段后必须同步更新以下所有文件的解包表达式和 defaults 字典：**
+
+| 文件 | 解包位置 | 备注 |
+|------|---------|------|
+| `seed_sync.py` | `handle()` 中的 `for ... enumerate(ANIMALS)` | 同时更新 `defaults` 字典 |
+| `sync_positions.py` | `handle()` 中的 `for ... in ANIMALS` | 同上 |
+
+漏掉任一文件会导致容器启动时崩溃，因为 `seed_sync` 是 entrypoint 的必执行步骤（`set -e` 下失败即退出）。
+
 分组可选值：`farm`（家里和农场）、`wild`（野生动物）、`ocean`（海洋动物）、`reptile`（爬虫和昆虫）
 
 ---
