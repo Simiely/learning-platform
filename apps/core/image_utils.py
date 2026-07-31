@@ -120,9 +120,9 @@ def emoji_color(emoji: str, darken: float = 0.7) -> str:
 
     Returns hex string like '#3c2d12'. Falls back to hashed colour on failure.
     """
-    # 黑方块占位 emoji：用中间色 #111111 作为取色结果，走加深计算后得到 #050505
+    # 黑方块占位 emoji：用中间色 #3c3c3c 作为取色结果，走加深计算后得到 #121212
     if emoji == "⬛":
-        mid = 0x11  # 17 * (1-0.7) = 5.1 -> 5
+        mid = 0x3C  # 60 * (1-0.7) = 18 -> #121212
         dark_r = max(0, int(mid * (1 - darken)))
         dark_g = max(0, int(mid * (1 - darken)))
         dark_b = max(0, int(mid * (1 - darken)))
