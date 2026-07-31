@@ -24,13 +24,12 @@
     </div>
 </div>
 
-<!-- 分组 Tabs -->
+<!-- 分组 Tabs（动态：按 Category.groups 配置渲染） -->
 <div class="group-tabs" id="group-tabs-{{ category.slug }}">
     <button class="group-tab active" data-group="all" onclick="filterGroup(this, 'all')"><span class="gt-count">{{ total_emoji }}</span><span class="gt-label">全部 ({{ total }})</span></button>
-    <button class="group-tab" data-group="farm" onclick="filterGroup(this, 'farm')">🏠<span class="gt-label">家里和农场 ({{ group_counts.farm }})</span></button>
-    <button class="group-tab" data-group="wild" onclick="filterGroup(this, 'wild')">🌍<span class="gt-label">野生动物 ({{ group_counts.wild }})</span></button>
-    <button class="group-tab" data-group="ocean" onclick="filterGroup(this, 'ocean')">🌊<span class="gt-label">海洋动物 ({{ group_counts.ocean }})</span></button>
-    <button class="group-tab" data-group="reptile" onclick="filterGroup(this, 'reptile')">🦎<span class="gt-label">爬虫和昆虫 ({{ group_counts.reptile }})</span></button>
+    {% for key, label, count in group_info %}
+    <button class="group-tab" data-group="{{ key }}" onclick="filterGroup(this, '{{ key }}')">{{ label|slice:":1" }}<span class="gt-label">{{ label }} ({{ count }})</span></button>
+    {% endfor %}
     <button class="group-tab letter-toggle" id="letter-toggle" onclick="toggleLetters(this)" title="字母分隔">🔤</button>
 </div>
 

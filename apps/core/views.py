@@ -39,12 +39,15 @@ def category_browse_view(request: Any, slug: str) -> Any:
 
     items_json = json.dumps([it.to_dict() for it in items])
 
-    # 统计每个分组的数量
-    group_counts = {"farm": 0, "wild": 0, "ocean": 0, "reptile": 0}
+    # 按 Category.groups 配置统计每个分组数量（动态，不写死）
+    groups = category.groups or {}
+    group_counts = {key: 0 for key in groups}
     for it in items:
         g = it.group or ""
         if g in group_counts:
             group_counts[g] += 1
+    # (key, label, count) 列表，方便模板循环渲染
+    group_info = [(key, label, group_counts.get(key, 0)) for key, label in groups.items()]
 
     return render(
         request,
@@ -53,9 +56,10 @@ def category_browse_view(request: Any, slug: str) -> Any:
             "category": category,
             "items": items,
             "items_json": items_json,
+            "group_info": group_info,  # [(key, "🏠 家里和农场", 13), ...]
+            "group_counts": group_counts,
             "total": len(items),
             "total_emoji": _to_emoji_digits(len(items)),
-            "group_counts": group_counts,
         },
     )
 

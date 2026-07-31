@@ -16,6 +16,10 @@ class Category(models.Model):
     )
     description = models.TextField(blank=True, default='', verbose_name='描述')
     sort_order = models.IntegerField(default=0, verbose_name='排序')
+    groups = models.JSONField(
+        default=dict, blank=True, verbose_name='分组配置',
+        help_text='浏览分组定义，格式 {"key": "🏠 名称"}。由种子数据写入。'
+    )
 
     class Meta:
         verbose_name = '学习模块'
@@ -31,13 +35,6 @@ class Category(models.Model):
 
 
 class Item(models.Model):
-    GROUP_CHOICES = [
-        ('farm', '🏠 家里和农场'),
-        ('wild', '🌍 野生动物'),
-        ('ocean', '🌊 海洋动物'),
-        ('reptile', '🦎 爬虫和昆虫'),
-    ]
-
     category = models.ForeignKey(
         Category, on_delete=models.CASCADE,
         related_name='items', verbose_name='所属模块'
@@ -87,8 +84,7 @@ class Item(models.Model):
     sort_order = models.IntegerField(default=0, verbose_name='排序')
     group = models.CharField(
         max_length=20, blank=True, default='', verbose_name='浏览分组',
-        choices=GROUP_CHOICES,
-        help_text='浏览模式中按组分开展示'
+        help_text='浏览模式分组 key，需在所属 Category.groups 中定义'
     )
 
     class Meta:

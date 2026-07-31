@@ -3,13 +3,13 @@ import os
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from apps.core.data import ANIMALS
+from apps.core.data import CATEGORIES
 from apps.core.models import Category, Item
 
-# 动物数据统一在 apps/core/data.py 维护（dataclass Animal）。
+# 所有分类数据统一在 apps/core/data/ 目录维护（每分类一个文件）。
 # image_position 是手动校准的视觉焦点（CSS object-position 格式）。
 # 不要用 detect_centers --force 覆盖这些值！
-# 修改焦点：直接改 data.py，然后 seed_data --force 或 seed_sync。
+# 修改焦点：直接改 data/ 下对应分类文件，然后 seed_data --force 或 seed_sync。
 
 
 def _write_media_file(rel_path, content_bytes):
@@ -64,58 +64,51 @@ class Command(BaseCommand):
         Item.objects.all().delete()
         Category.objects.all().delete()
 
-        categories_data = [
-            ('动物', 'animals', '认识各种动物', 1, '🐾'),
-        ]
-
         cat_objs = {}
-        for name, slug, desc, order, icon in categories_data:
+        for cat_data in CATEGORIES:
             cat = Category.objects.create(
-                name=name, slug=slug,
-                icon=icon,
-                description=desc, sort_order=order
+                name=cat_data.name, slug=cat_data.slug,
+                icon=cat_data.icon,
+                description=cat_data.description,
+                sort_order=cat_data.sort_order,
+                groups=cat_data.groups,
             )
-            cat_objs[slug] = cat
-            self.stdout.write(f'  Created category: {name}')
+            cat_objs[cat_data.slug] = cat
+            self.stdout.write(f'  Created category: {cat_data.name}')
 
-        items_data = [
-            ('animals', ANIMALS, True),
-        ]
-
-        for slug, items, use_real_media in items_data:
-            cat = cat_objs[slug]
-            for idx, animal in enumerate(items):
+        for cat_data in CATEGORIES:
+            cat = cat_objs[cat_data.slug]
+            for idx, item_data in enumerate(cat_data.items):
                 item = Item.objects.create(
                     category=cat,
-                    code=animal.code,
-                    name=animal.name,
-                    english_name=animal.english_name,
-                    emoji=animal.emoji,
-                    fact=animal.fact,
-                    image_position=animal.image_position or "50% 50%",
-                    image_position_ipad_portrait=animal.image_position_ipad_portrait or "50% 50%",
-                    image_position_ipad_landscape=animal.image_position_ipad_landscape or "50% 50%",
+                    code=item_data.code,
+                    name=item_data.name,
+                    english_name=item_data.english_name,
+                    emoji=item_data.emoji,
+                    fact=item_data.fact,
+                    image_position=item_data.image_position or "50% 50%",
+                    image_position_ipad_portrait=item_data.image_position_ipad_portrait or "50% 50%",
+                    image_position_ipad_landscape=item_data.image_position_ipad_landscape or "50% 50%",
                     image_position_checked=True,
                     sort_order=idx,
-                    group=animal.group or '',
+                    group=item_data.group or '',
                 )
 
-                if use_real_media:
-                    # Image — write canonical plain name (no Django `_<suffix>`)
-                    if animal.img_file:
-                        src = os.path.join(MEDIA_ROOT, 'images', animal.img_file)
+                # Image — write canonical plain name (no Django `_<suffix>`)
+                if item_data.img_file:
+                    src = os.path.join(MEDIA_ROOT, 'images', item_data.img_file)
+                    if os.path.exists(src):
+                        with open(src, 'rb') as f:
+                            item.image = _write_media_file(os.path.join('images', item_data.img_file), f.read())
+                        item.save(update_fields=['image'])
+                # Audio zh / en / fact — same canonical-name treatment
+                if item_data.audio_file:
+                    for sub, field in (('audio', 'audio'), ('audio_en', 'audio_en'), ('audio_fact', 'audio_fact')):
+                        src = os.path.join(MEDIA_ROOT, sub, item_data.audio_file)
                         if os.path.exists(src):
                             with open(src, 'rb') as f:
-                                item.image = _write_media_file(os.path.join('images', animal.img_file), f.read())
-                            item.save(update_fields=['image'])
-                    # Audio zh / en / fact — same canonical-name treatment
-                    if animal.audio_file:
-                        for sub, field in (('audio', 'audio'), ('audio_en', 'audio_en'), ('audio_fact', 'audio_fact')):
-                            src = os.path.join(MEDIA_ROOT, sub, animal.audio_file)
-                            if os.path.exists(src):
-                                with open(src, 'rb') as f:
-                                    setattr(item, field, _write_media_file(os.path.join(sub, animal.audio_file), f.read()))
-                        item.save(update_fields=["audio", "audio_en", "audio_fact"])
-                self.stdout.write(f'    {cat.name}: {animal.name}')
+                                setattr(item, field, _write_media_file(os.path.join(sub, item_data.audio_file), f.read()))
+                    item.save(update_fields=["audio", "audio_en", "audio_fact"])
+                self.stdout.write(f'    {cat.name}: {item_data.name}')
 
         self.stdout.write(self.style.SUCCESS('Seed data created successfully!'))

@@ -1,8 +1,10 @@
-"""Animal seed data - single source of truth.
+"""Animal category seed data.
 
 image_position 是手动校准的视觉焦点（CSS object-position 格式）。
 不要用 detect_centers --force 覆盖这些值！
 修改焦点：直接改这里，然后 seed_sync 或 seed_data --force。
+
+本文件是"动物"分类的数据源；分类级配置见 __init__.py（CATEGORIES）。
 """
 from dataclasses import dataclass
 
@@ -20,6 +22,15 @@ class Animal:
     image_position_ipad_portrait: str
     image_position_ipad_landscape: str
     group: str
+
+
+# 动物分类的分组配置（key -> 显示名）
+ANIMAL_GROUPS = {
+    "farm": "🏠 家里和农场",
+    "wild": "🌍 野生动物",
+    "ocean": "🌊 海洋动物",
+    "reptile": "🦎 爬虫和昆虫",
+}
 
 
 ANIMALS: list[Animal] = [

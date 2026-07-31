@@ -29,21 +29,21 @@ BASE = Path(__file__).resolve().parent / "media"
 ZH = "zh-CN-XiaoxiaoNeural"
 EN = "en-US-JennyNeural"
 
-# 从单一数据源读取全部动物（base, 中文名, 英文名, 科普文案）
-def _animals():
+# 从单一数据源读取全部分类条目（base, 中文名, 英文名, 科普文案）
+def _items():
     import django
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     django.setup()
-    from apps.core.data import ANIMALS
+    from apps.core.data import CATEGORIES
 
     return [
         (Path(a.img_file).stem, a.name, a.english_name, a.fact)
-        for a in ANIMALS
+        for cat in CATEGORIES for a in cat.items
     ]
 
 
-ANIMALS = _animals()
+ANIMALS = _items()
 
 
 async def gen_one(text, voice, out_path):

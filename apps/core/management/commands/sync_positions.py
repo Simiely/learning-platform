@@ -1,13 +1,13 @@
 import sys
 from django.core.management.base import BaseCommand
-from apps.core.data import ANIMALS
+from apps.core.data import CATEGORIES
 from apps.core.models import Item
 
 
 class Command(BaseCommand):
     help = (
         "Sync image_position fields (iPhone + iPad portrait + iPad landscape) "
-        "from apps/core/data.py ANIMALS into existing DB items. "
+        "from apps/core/data/ category files into existing DB items. "
         "Does NOT touch other fields; safe to run on live data."
     )
 
@@ -20,7 +20,8 @@ class Command(BaseCommand):
             'image_position_ipad_landscape': 'image_position_ipad_landscape',
         }
 
-        for a in ANIMALS:
+        all_items = [a for cat in CATEGORIES for a in cat.items]
+        for a in all_items:
             try:
                 item = Item.objects.get(code=a.code)
             except Item.DoesNotExist:

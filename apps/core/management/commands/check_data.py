@@ -11,7 +11,7 @@ import sys
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from apps.core.data import ANIMALS
+from apps.core.data import CATEGORIES
 from apps.core.models import Category, Item
 
 
@@ -38,19 +38,23 @@ class Command(BaseCommand):
                 if not os.path.exists(path):
                     problems.append(f"[{item.code}] 文件不存在: {path}")
 
-        # 2. data.py 与 DB 对齐
+        # 2. data/ 与 DB 对齐（所有分类）
         db_codes = {i.code for i in Item.objects.all()}
-        data_codes = {a.code for a in ANIMALS}
+        data_codes = {a.code for cat in CATEGORIES for a in cat.items}
         missing_in_db = data_codes - db_codes
         extra_in_db = db_codes - data_codes
         for code in sorted(missing_in_db):
-            problems.append(f"data.py 有但 DB 缺: {code}")
+            problems.append(f"data 有但 DB 缺: {code}")
         for code in sorted(extra_in_db):
-            problems.append(f"DB 有但 data.py 无: {code}")
+            problems.append(f"DB 有但 data 无: {code}")
 
-        # 3. Category 检查
-        if not Category.objects.filter(slug="animals").exists():
-            problems.append("缺少 animals 分类")
+        # 3. Category 检查（data/ 中注册的分类都应在 DB 存在）
+        for cat_data in CATEGORIES:
+            cat = Category.objects.filter(slug=cat_data.slug).first()
+            if not cat:
+                problems.append(f"缺少 {cat_data.slug} 分类")
+            elif not cat.groups:
+                problems.append(f"{cat_data.slug} 分类缺少 groups 配置")
 
         if problems:
             for p in problems:
@@ -60,6 +64,6 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"OK: {Item.objects.count()} items, 媒体文件齐全, data.py 与 DB 对齐"
+                f"OK: {Item.objects.count()} items, 媒体文件齐全, data/ 与 DB 对齐（{len(CATEGORIES)} 个分类）"
             )
         )
