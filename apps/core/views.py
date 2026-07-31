@@ -43,11 +43,13 @@ def category_browse_view(request: Any, slug: str) -> Any:
         items = sort_by_pinyin(category.items.all())
 
     # Attach colour based on emoji for each item + 字母分隔用的首字母
+    # initial 按排序模式统一计算（模板 ifchanged 只用这一个变量，避免条件表达式语法问题）
     for item in items:
         item.color = emoji_color(item.emoji or item.name)
         item.pinyin_initial = pinyin_initial(item.name)
         en = (item.english_name or "").strip()
         item.en_initial = en[0].upper() if en and en[0].isalpha() else "#"
+        item.initial = item.en_initial if sort_en else item.pinyin_initial
 
     items_json = json.dumps([it.to_dict() for it in items])
 

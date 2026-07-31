@@ -41,8 +41,8 @@
 
 <div class="browse-grid" id="browse-grid-{{ category.slug }}">
     {% for item in items %}
-    {% ifchanged item.pinyin_initial if sort_en else item.en_initial %}
-    <div class="b-letter-divider" data-letter="{% if sort_en %}{{ item.en_initial }}{% else %}{{ item.pinyin_initial }}{% endif %}"><span class="ld-badge">{% if sort_en %}{{ item.en_initial }}{% else %}{{ item.pinyin_initial }}{% endif %}</span></div>
+    {% ifchanged item.initial %}
+    <div class="b-letter-divider" data-letter="{{ item.initial }}"><span class="ld-badge">{{ item.initial }}</span></div>
     {% endifchanged %}
     <div class="b-tile" data-item-id="{{ item.id }}"
          data-group="{{ item.group }}"

@@ -70,6 +70,22 @@ class BrowseViewTests(TestCase):
             "英文模式应按英文名排序",
         )
 
+    def test_letter_dividers_grouped_by_initial(self):
+        # 同首字母的条目只渲染一个字母分块（区域块正确合并，不逐条重复）
+        for url in ("/category/animals/", "/category/animals/?sort=en"):
+            resp = self.client.get(url)
+            html = resp.content.decode()
+            letters = re.findall(r'ld-badge">([A-Z#])</span>', html)
+            merged = sum(
+                1 for i, l in enumerate(letters) if i == 0 or l != letters[i - 1]
+            )
+            self.assertEqual(
+                len(letters), merged, f"{url} 相邻同字母应合并为一个分块",
+            )
+            self.assertEqual(
+                len(letters), len(set(letters)), f"{url} 分块应按字母分组",
+            )
+
     def test_cards_page_renders(self):
         resp = self.client.get("/category/animals/cards/")
         self.assertEqual(resp.status_code, 200)
