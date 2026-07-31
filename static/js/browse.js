@@ -59,6 +59,8 @@
         };
 
         // ---- Letter divider (区块模式：🀄拼音 / 🔤英文，互斥选中；默认关闭) ----
+        // lettersEnabled 是服务端快照（cfg.lettersEnabled，来自 ?letters=zh|en），
+        // 运行期不再改变；为 false 时模板不渲染分块，此开关仅作提前退出。
         var lettersEnabled = cfg.lettersEnabled === true;
 
         function updateLetterDividers() {

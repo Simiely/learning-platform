@@ -39,7 +39,7 @@ learning-platform/
 │   ├── views.py                # 视图 + API（复用 services）
 │   ├── services.py             # 公共业务逻辑（拼音排序/首字母/进度记录）
 │   ├── image_utils.py          # emoji 取色 + 图片焦点检测
-│   ├── tests/                  # 20 个单元/视图测试
+│   ├── tests/                  # 40 个单元/视图测试
 │   └── management/commands/
 │       ├── seed_data.py        # 全量重建（清空旧数据，仅首启/测试用）
 │       ├── seed_sync.py        # 增量同步（Docker 部署安全，可补写缺失音频）
@@ -69,10 +69,9 @@ learning-platform/
 │       ├── audio-player.js     # 音频播放 + 自动连播
 │       ├── image-zoom.js       # 图片缩放/拖拽
 │       ├── confetti.js         # 礼花特效 + Web Audio 音效
-│       ├── browse.js           # 浏览模式（tiles/分组/字母分隔/已看）
+│       ├── browse.js           # 浏览模式（tiles/分组/字母区块/已看）
 │       ├── cards.js            # 卡片模式（翻卡/随机/缩放）
 │       ├── quiz.js             # 练习模式（Alpine 组件）
-│       └── utils.js            # ⚠️ DEPRECATED (2026-07-31)，确认无引用后删除
 ├── media/                      # 图片 + 音频（77 只动物，进 git）
 ├── ANIMALS.md                  # 动物数据展示表（代码主源是 apps/core/data/animals.py）
 ├── DEV.md                      # 开发笔记（踩坑记录）
@@ -84,7 +83,7 @@ learning-platform/
 └── requirements.txt
 ```
 
-> `static/css/style.css` 是模块化重构前的旧版单文件，**未在任何模板中加载**，已标记 DEPRECATED (2026-07-31)，确认无遗漏后删除。
+> 旧版单文件 `static/css/style.css`、`static/js/utils.js` 已在 2026-07-31 模块化重构中删除，无需处理。
 
 ## 数据模型
 
@@ -125,10 +124,9 @@ learning-platform/
 | 路由 | 视图 | 说明 |
 |------|------|------|
 | `/` | index_view | 首页 |
-| `/category/<slug>/` | category_browse_view | 浏览模式 |
+| `/category/<slug>/` | category_browse_view | 浏览模式（支持 `?letters=zh\|en` 区块） |
 | `/category/<slug>/cards/` | category_cards_view | 卡片模式 |
 | `/category/<slug>/quiz/` | category_quiz_view | 练习模式 |
-| `/api/item/<id>/` | item_detail_api | 单个项目 JSON API |
 | `/api/quiz/<slug>/question/` | quiz_question_api | 练习出题 API |
 | `/api/quiz/<slug>/submit/` | quiz_submit_batch | 提交成绩 |
 | `/api/mark-viewed/<id>/` | mark_viewed | 标记已查看 |
@@ -223,13 +221,12 @@ class Animal:
 | `audio-player.js` | `AudioPlayer(el)` → `play(), stop(), playSequence()` | 音频播放 + 中→英自动连播 |
 | `image-zoom.js` | `ImageZoom.init()` | 图片缩放/拖拽 |
 | `confetti.js` | `Confetti.launch()`, `.playCorrectSound()`, `.playWrongSound()` | 礼花 + Web Audio 音效 |
-| `browse.js` | `browseApp({slug, csrfToken, items, markViewedUrl, resetUrl})` | 浏览模式：分组过滤/字母分隔开关/已看状态 |
+| `browse.js` | `browseApp({slug, csrfToken, items, lettersEnabled, markViewedUrl, resetUrl})` | 浏览模式：分组过滤/字母区块（🀄拼音·🔤英文）/已看状态 |
 | `cards.js` | `cardsApp({items, csrfToken, markViewedUrl})` | 卡片模式：翻卡/随机/缩放 |
 | `quiz.js` | `quizApp({categorySlug, csrfToken, questionUrl, submitUrl, quizUrl, browseUrl})` | 练习模式：10 题问答/连播/提交 |
-| `utils.js` | — | ⚠️ DEPRECATED (2026-07-31)，未使用，确认后删除 |
 
 ### 关键设计规则
-- `ipad-detect.js` 在 `<head>` 中**同步加载**（无 `defer`）；`utils.js` 已 DEPRECATED 计划移除
+- `ipad-detect.js` 在 `<head>` 中**同步加载**（无 `defer`）
 - 页面逻辑 JS（browse/cards/quiz）在模板底部以 `xxxApp({...})` 初始化，配置项由模板内联传入
 - **CSS/JS 版本号**：修改 CSS/JS 后更新模板中 `?v=YYYYMMDDx`，否则 Safari 强缓存不更新
 - iPad 检测用 `screen.width >= 768`（物理像素），不用 `window.innerWidth`
@@ -258,8 +255,7 @@ class Animal:
 | 练习模式容器塌缩 | quiz.css 缺少全视口样式 | 确认 `.container-quiz` 含 `height: calc(var(--vh)*100-52px)` |
 | 练习答题后音频混乱 | `playQuizAudio` 引用动态属性被覆盖 | 用闭包冻结题目快照 + `_quizSeqId` 防护 |
 | 练习模式 layout 跳动 | `x-if` 条件渲染导致高度变化 | 改用 `x-show` + 固定 height |
-| 英文/科普音频不播放 | `item_detail_api` 未传 `audio_en/fact` | 同步更新两处 JSON |
-| 图片焦点偏移 | `image_position` 校准值不准 | 改 seed_data 元组后 `seed_data --force` 或重启容器 |
+| 图片焦点偏移 | `image_position` 校准值不准 | 改 data/ 条目后 `sync_positions` 或 `seed_data --force` |
 | iPad 白变黑 | iPad 辅助功能「智能反转」| **不是 CSS bug**，不要改代码 |
 
 ---
@@ -363,7 +359,7 @@ iOS Safari 对 `<button>` 元素有底层渲染偏差，即使 CSS 完全一致�
 `profile_view` 原循环对每个分类逐次查询 `LearningProgress`。已改用 `Count + filter=Q()` annotate 一次查询完成。
 
 ### 10. view_count 首次查看计数翻倍
-`item_detail_api` 中 `get_or_create` 后判断 `if progress.id:` 永远为真。已改用 `created` 返回值 + `F('view_count') + 1` 原子递增。
+`mark_viewed` 中 `get_or_create` 后判断 `if progress.id:` 永远为真。已改用 `created` 返回值 + `F('view_count') + 1` 原子递增。
 
 ### 11. edge-tts 替代 gTTS
 沙箱环境走代理，gTTS 请求 Google API 被拦截。改用 `edge-tts`（Microsoft Edge 神经网络语音），调用 `speech.platform.bing.com` 可通代理。

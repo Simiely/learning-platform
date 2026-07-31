@@ -45,6 +45,44 @@ class BrowseViewTests(TestCase):
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, 200)
 
+    def test_browse_letters_zh_active(self):
+        # ?letters=zh：拼音区块开启 + 🀄 按钮选中态
+        resp = self.client.get("/category/animals/?letters=zh")
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        self.assertIn("lettersEnabled: true", html, "拼音区块应初始开启")
+        self.assertIn(
+            'class="group-tab letter-toggle active" onclick="toggleLetterMode(\'zh\')"',
+            html, "🀄 按钮应为选中态",
+        )
+        # 🔤 按钮不应选中
+        self.assertNotIn(
+            'class="group-tab letter-toggle active" onclick="toggleLetterMode(\'en\')"',
+            html, "🔤 按钮不应选中",
+        )
+
+    def test_browse_letters_invalid_fallback(self):
+        # 非法 letters 值（如 xyz）：回落拼音排序、无分块、两按钮都不选中
+        resp = self.client.get("/category/animals/?letters=xyz")
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        self.assertIn("lettersEnabled: false", html, "非法值不应开启区块")
+        self.assertNotIn("b-letter-divider", html, "非法值不应渲染分块")
+        for btn in re.findall(r'<button class="group-tab letter-toggle[^"]*"', html):
+            self.assertNotIn("active", btn, f"非法值不应选中区块按钮: {btn}")
+
+    def test_browse_letters_en_hash_fallback(self):
+        # 英文名为空的条目 → en_initial 归入 '#' 分块（防御逻辑）
+        Item.objects.create(
+            category=self.cat, code="test_empty_en_20260731", name="测试空英文名",
+            english_name="", emoji="🐾", fact="测试", group="wild",
+            sort_order=99, image_position_checked=True,
+        )
+        resp = self.client.get("/category/animals/?letters=en")
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        self.assertIn('ld-badge">#</span>', html, "空英文名应归入 # 分块")
+
     def test_browse_page_renders_all_tiles(self):
         resp = self.client.get("/category/animals/")
         self.assertEqual(resp.status_code, 200)

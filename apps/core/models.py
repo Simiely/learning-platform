@@ -96,7 +96,7 @@ class Item(models.Model):
         return f'{self.name} ({self.category.name})'
 
     def to_dict(self) -> dict[str, Any]:
-        """Return a JSON-serialisable dict used by cards view and item_detail_api."""
+        """Return a JSON-serialisable dict used by cards/browse views and quiz API."""
         return {
             "id": self.id,
             "name": self.name,
