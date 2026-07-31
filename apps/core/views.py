@@ -6,16 +6,13 @@ import json
 import random
 from typing import Any
 
-from django.conf import settings
-from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
-from django.db.models import F
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 
-from .image_utils import _emoji_color, _detect_image_center, _hash_tile_color
-from .models import Category, Item, LearningProgress, QuizAttempt
+from .image_utils import emoji_color
+from .models import Category, Item, QuizAttempt
+from .services import mark_item_viewed, pinyin_initial, sort_by_pinyin
 
 
 def _to_emoji_digits(n: int) -> str:
@@ -32,22 +29,13 @@ def index_view(request: Any) -> Any:
 
 def category_browse_view(request: Any, slug: str) -> Any:
     category = get_object_or_404(Category, slug=slug)
-    from pypinyin import Style, pinyin
 
-    items = sorted(
-        list(category.items.all()),
-        key=lambda it: pinyin(it.name, style=Style.TONE3)[0][0] if it.name else "",
-    )
+    items = sort_by_pinyin(category.items.all())
 
     # Attach colour based on emoji for each item
     for item in items:
-        item.color = _emoji_color(item.emoji or item.name)
-        # 拼音首字母（用于字母分组标题）
-        try:
-            initial = pinyin(item.name, style=Style.FIRST_LETTER)[0][0][0].upper()
-            item.pinyin_initial = initial if initial.isalpha() else "#"
-        except Exception:
-            item.pinyin_initial = "#"
+        item.color = emoji_color(item.emoji or item.name)
+        item.pinyin_initial = pinyin_initial(item.name)
 
     items_json = json.dumps([it.to_dict() for it in items])
 
@@ -73,12 +61,8 @@ def category_browse_view(request: Any, slug: str) -> Any:
 
 def category_cards_view(request: Any, slug: str) -> Any:
     category = get_object_or_404(Category, slug=slug)
-    from pypinyin import Style, pinyin
 
-    items = sorted(
-        list(category.items.all()),
-        key=lambda it: pinyin(it.name, style=Style.TONE3)[0][0] if it.name else "",
-    )
+    items = sort_by_pinyin(category.items.all())
     items_json = json.dumps([it.to_dict() for it in items])
     return render(
         request,
@@ -93,16 +77,7 @@ def category_cards_view(request: Any, slug: str) -> Any:
 
 def item_detail_api(request: Any, item_id: int) -> JsonResponse:
     item = get_object_or_404(Item, id=item_id)
-    if request.user.is_authenticated:
-        progress, created = LearningProgress.objects.get_or_create(
-            user=request.user,
-            item=item,
-            defaults={"learned": True, "view_count": 1},
-        )
-        if not created:
-            progress.view_count = F("view_count") + 1
-            progress.learned = True
-            progress.save(update_fields=["view_count", "learned"])
+    mark_item_viewed(request.user, item)
     return JsonResponse(item.to_dict())
 
 def reset_visited(request: Any, slug: str) -> JsonResponse:
@@ -113,21 +88,11 @@ def reset_visited(request: Any, slug: str) -> JsonResponse:
     """
     return JsonResponse({"status": "ok"})
 
+@require_POST
 def mark_viewed(request: Any, item_id: int) -> JsonResponse:
-    if request.method == "POST":
-        item = get_object_or_404(Item, id=item_id)
-        if request.user.is_authenticated:
-            progress, created = LearningProgress.objects.get_or_create(
-                user=request.user,
-                item=item,
-                defaults={"learned": True, "view_count": 1},
-            )
-            if not created:
-                progress.view_count = F("view_count") + 1
-                progress.learned = True
-                progress.save(update_fields=["view_count", "learned"])
-        return JsonResponse({"status": "ok"})
-    return JsonResponse({"status": "error"}, status=400)
+    item = get_object_or_404(Item, id=item_id)
+    mark_item_viewed(request.user, item)
+    return JsonResponse({"status": "ok"})
 
 def category_quiz_view(request: Any, slug: str) -> Any:
     category = get_object_or_404(Category, slug=slug)

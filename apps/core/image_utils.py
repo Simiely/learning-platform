@@ -74,7 +74,7 @@ def detect_image_center(image_path: str) -> Optional[str]:
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning(
-                "Saliency detection failed for %s: %s", img_path, e
+                "Saliency detection failed for %s: %s", image_path, e
             )
 
         # Step 2: Edge-weighted centroid fallback
@@ -166,7 +166,7 @@ def emoji_color(emoji: str, darken: float = 0.7) -> str:
     return fallback
 
 
-# Backward-compatible aliases for callers that import by old names
+# 兼容别名：旧代码可能按下划线名导入（如 detect_centers 命令）
 _detect_image_center = detect_image_center
 _emoji_color = emoji_color
 _hash_tile_color = hash_tile_color
