@@ -26,11 +26,16 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+/* 全部按钮的常显数字：iPad 隐藏，iPhone 显示 */
+.group-tab .gt-count { display: none; }
+
 /* iPhone 窄屏：按钮默认只显示 emoji，选中按钮才展开文字 */
 @media (max-width: 768px) {
     .group-tab { padding: 8px 11px; }
     .group-tab .gt-label { display: none; }
     .group-tab.active .gt-label { display: inline; }
+    .group-tab[data-group="all"] .gt-count { display: inline; }
+    .group-tab[data-group="all"].active .gt-count { display: none; }
 }
 
 .group-tab:active {
