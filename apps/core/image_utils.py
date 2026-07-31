@@ -120,6 +120,10 @@ def emoji_color(emoji: str, darken: float = 0.7) -> str:
 
     Returns hex string like '#3c2d12'. Falls back to hashed colour on failure.
     """
+    # 黑方块占位 emoji：使用指定底色
+    if emoji == "⬛":
+        return "#050505"
+
     if not emoji or not _EMOJI_FONT_PATH:
         return hash_tile_color(emoji or "?")
 
