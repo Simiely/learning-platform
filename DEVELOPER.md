@@ -26,18 +26,21 @@
 ```
 learning-platform/
 ├── apps/core/                  # 核心应用
-│   ├── data.py                 # ⭐ 动物数据单一来源（Animal dataclass，77 只）
-│   ├── models.py               # Category, Item, LearningProgress, QuizAttempt
+│   ├── data/                   # ⭐ 全部分类数据单一来源
+│   │   ├── __init__.py         # CardItem dataclass + CATEGORIES 汇总（分类级配置）
+│   │   ├── animals.py          # 动物分类（Animal，77 只，焦点已手工校准）
+│   │   └── fruits.py           # 果蔬分类（Fruit，23 种，图片用 emoji 代替）
+│   ├── models.py               # Category(含 groups 配置), Item, LearningProgress, QuizAttempt
 │   ├── views.py                # 视图 + API（复用 services）
 │   ├── services.py             # 公共业务逻辑（拼音排序/首字母/进度记录）
 │   ├── image_utils.py          # emoji 取色 + 图片焦点检测
 │   ├── tests/                  # 20 个单元/视图测试
 │   └── management/commands/
 │       ├── seed_data.py        # 全量重建（清空旧数据，仅首启/测试用）
-│       ├── seed_sync.py        # 增量同步（Docker 部署安全）
+│       ├── seed_sync.py        # 增量同步（Docker 部署安全，可补写缺失音频）
 │       ├── sync_positions.py   # 同步图片焦点到数据库
 │       ├── detect_centers.py   # OpenCV 自动检测焦点（不要用 --force）
-│       └── check_data.py       # 校验 DB / 媒体 / data.py 三方一致
+│       └── check_data.py       # 校验 DB / 媒体 / data/ 三方一致
 ├── apps/users/                 # 用户模块（登录/注册/统计）
 ├── config/                     # Django 配置
 ├── templates/                  # 9 个 HTML 模板
@@ -66,7 +69,7 @@ learning-platform/
 │       ├── quiz.js             # 练习模式（Alpine 组件）
 │       └── utils.js            # ⚠️ DEPRECATED (2026-07-31)，确认无引用后删除
 ├── media/                      # 图片 + 音频（77 只动物，进 git）
-├── ANIMALS.md                  # 动物数据展示表（代码主源是 data.py）
+├── ANIMALS.md                  # 动物数据展示表（代码主源是 apps/core/data/animals.py）
 ├── DEV.md                      # 开发笔记（踩坑记录）
 ├── ADD_ANIMALS_GUIDE.md        # 新增动物操作指南
 ├── TODO.md                     # 待办与已定决策
@@ -136,7 +139,7 @@ Safari 智能追踪防护会阻止 CDN 的 Alpine.js 访问 localStorage，导�
 iOS Safari 对 `<button>` 元素有渲染偏差。用 `<span>` 复用 badge 盒模型解决。
 
 ### 图片焦点（三套系统）
-每张图片支持三套独立焦点：`image_position`（iPhone）、`image_position_ipad_portrait`（iPad 竖屏）、`image_position_ipad_landscape`（iPad 横屏）。均在 `apps/core/data.py` 中手动校准，标记 `image_position_checked=True`，`detect_centers --force` 不会覆盖。
+每张图片支持三套独立焦点：`image_position`（iPhone）、`image_position_ipad_portrait`（iPad 竖屏）、`image_position_ipad_landscape`（iPad 横屏）。均在 `apps/core/data/` 中手动校准，标记 `image_position_checked=True`，`detect_centers --force` 不会覆盖。
 
 ### 图片规则
 - **不裁剪**，保持原始比例（App 用 `object-fit: cover` + 焦点适配）
@@ -153,14 +156,14 @@ iOS Safari 对 `<button>` 元素有渲染偏差。用 `<span>` 复用 badge 盒�
 ## 数据修改规则
 
 ### ⚠️ 铁律
-**所有动物数据只能通过 `apps/core/data.py` 修改，禁止直接操作数据库。**
+**所有动物数据只能通过 `apps/core/data/` 修改，禁止直接操作数据库。**
 
 ### 修改流程
 ```bash
-# 1. 编辑 apps/core/data.py（改焦点、科普、新增动物等，Animal dataclass）
+# 1. 编辑 apps/core/data/（改焦点、科普、新增动物等，Animal dataclass）
 # 2. 同步到数据库
 python manage.py seed_sync
-# 3. 校验一致性（媒体文件 + DB + data.py 对齐）
+# 3. 校验一致性（媒体文件 + DB + data/ 对齐）
 python manage.py check_data
 # 4. 重启服务（Django runserver 自动重载）
 ```
@@ -170,7 +173,7 @@ python manage.py check_data
 - **不能用 `seed_data --force`**（会清空旧数据，Docker 环境会丢用户进度）
 - `sync_positions` 只同步三套焦点字段，不碰其他数据
 
-### Animal dataclass 结构（apps/core/data.py，11 个字段）
+### Animal dataclass 结构（apps/core/data/animals.py，11 个字段）
 ```python
 @dataclass(frozen=True)
 class Animal:
@@ -187,10 +190,11 @@ class Animal:
     group: str                           # farm/wild/ocean/reptile
 ```
 
-### ✅ 字段结构改动（2026-07-31 重构后）
-动物数据统一在 `data.py` 维护，`seed_data.py` / `seed_sync.py` / `sync_positions.py` / `gen_audio.py`
-全部通过 `from apps.core.data import ANIMALS` 读取，用 `a.xxx` 属性访问。
-**增删字段只需改 data.py 一处**，不再需要同步修改其他文件。
+### ✅ 字段结构改动（2026-07-31 多分类重构后）
+全部条目数据统一在 `apps/core/data/` 目录维护（`__init__.py` 汇总 CATEGORIES，每分类一个数据文件），
+`seed_data.py` / `seed_sync.py` / `sync_positions.py` / `check_data.py` / `gen_audio.py`
+全部通过 `from apps.core.data import CATEGORIES` 遍历读取，用 `a.xxx` 属性访问。
+**加新分类 = 新建一个数据文件 + 在 `__init__.py` 的 CATEGORIES 注册一行**；增删字段只需改数据文件一处。
 
 分组可选值：`farm`（家里和农场）、`wild`（野生动物）、`ocean`（海洋动物）、`reptile`（爬虫和昆虫）
 
@@ -309,7 +313,7 @@ docker compose pull && docker compose up -d
 | `DEV.md` | 开发笔记（详细踩坑历史） | 排错时 |
 | `TODO.md` | 待办事项 + 已定决策 | 接手下一次任务时 |
 
-> 文档与代码的对应关系：**动物数据以 `apps/core/data.py` 为准**，ANIMALS.md 是它的展示版，
+> 文档与代码的对应关系：**动物数据以 `apps/core/data/` 为准**，ANIMALS.md 是它的展示版，
 > 二者需保持一致；改完数据跑 `python manage.py check_data` 可自动校验。
 
 ---

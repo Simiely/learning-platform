@@ -35,13 +35,15 @@ python manage.py collectstatic      # 用 gunicorn 生产部署时需要
 
 ### C. 图片焦点校准
 第3~7批动物焦点已校准。如需微调，改
-`apps/core/data.py` 对应 `Animal` 的焦点字段（image_position / image_position_ipad_portrait /
+`apps/core/data/animals.py` 对应 `Animal` 的焦点字段（image_position / image_position_ipad_portrait /
 image_position_ipad_landscape），再跑 `python manage.py sync_positions`（只同步焦点，不碰其他字段）。
 焦点约定见 `DEVELOPER.md`。
 
-### D. 后续动物批次
-- ✅ **第1~7批共 77 只已全部上线**（详见 `ANIMALS.md`）。
-- 音频生成工具 `gen_audio.py`（仓库根目录）从 `apps/core/data.py` 读取全部动物，无需单独维护列表。
+### D. 后续分类/条目批次
+- ✅ **动物第1~7批共 77 只已全部上线**（详见 `ANIMALS.md`）。
+- ✅ **果蔬分类 23 种已上线**（2026-07-31，图片暂用 emoji 代替，数据在 `apps/core/data/fruits.py`）。
+- ⏳ **后续分类**：交通工具 → 恐龙 → 太空 → 花卉植物 → 职业（数据/音频流程同果蔬，图片先用 emoji）。
+- 音频生成工具 `gen_audio.py`（仓库根目录）从 `apps/core/data/` 读取，**必须带 `--category <slug>`** 只生成新增分类，勿全量跑（会覆盖已有音频，曾致 cat/whale 损坏）。
 - 图片下载工具 `download_unsplash.py`（仓库根目录）用于获取候选参考图。
 
 ### E. 本地预览服务（验证完可停）
@@ -56,13 +58,18 @@ image_position_ipad_landscape），再跑 `python manage.py sync_positions`（�
 2. **图片不裁正方形**：`media/images/` 现有图均为长方形，App 用 `object-fit: cover` + 焦点适配。
    高清图原样搬入即可（长边 ≥ 3000px）。
 3. **媒体文件命名**：图片/音频用简单英文名做基名（如 `ant.jpg` / `ant.mp3`），
-   须与 `apps/core/data.py` 中该动物的 `img_file` / `audio_file` 基名一致。
+   须与 `apps/core/data/` 中该条目的 `img_file` / `audio_file` 基名一致。
 4. **批次结构**：第1~7批共 77 只已上线（详见 `ANIMALS.md`）。
 5. **依赖版本**：`requirements.txt` 已统一为本地运行环境版本（Django 6.0.7 等），部署照此安装。
 6. **图片压缩不需要**（2026-07-31 用户明确）：`media/images/` 原图直出（当前共 191MB，最大 13MB），
    不压缩、不做懒加载，维持现状。此项**不再作为待办**。
-7. **动物数据单一来源**：`apps/core/data.py`（Animal dataclass）是唯一数据源，
-   seed_data / seed_sync / sync_positions / gen_audio 全部从它读取，勿在其他文件维护动物数据。
+7. **数据单一来源（多分类）**：`apps/core/data/` 目录是全部条目数据的唯一来源——
+   `__init__.py`（CATEGORIES 汇总 + CardItem dataclass）+ 每分类一个数据文件（animals.py / fruits.py）。
+   seed_data / seed_sync / sync_positions / check_data / gen_audio 全部从 CATEGORIES 读取。
+8. **新分类图片用 emoji 代替**（2026-07-31 定）：暂不找图时 `img_file` 留空字符串即可，
+   前端自动显示 emoji，后续补真实图只需填文件名 + 重新 seed_sync。
+9. **gen_audio 必须 --category**（2026-07-31 定）：生成音频只跑
+   `python gen_audio.py --category <slug>`；无参数全量会覆盖已有音频且中途失败留 0 字节损坏文件。
 
 ## 三、需要你（用户）提供的密钥 / 凭据
 
