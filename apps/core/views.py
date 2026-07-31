@@ -32,23 +32,12 @@ def index_view(request: Any) -> Any:
 def category_browse_view(request: Any, slug: str) -> Any:
     category = get_object_or_404(Category, slug=slug)
 
-    # 排序模式：?sort=en = 英文首字母排序；默认（无参数）= 拼音排序
-    sort_en = request.GET.get("sort") == "en"
+    items = sort_by_pinyin(category.items.all())
 
-    if sort_en:
-        items = sorted(
-            category.items.all(),
-            key=lambda it: (it.english_name or "").lower(),
-        )
-    else:
-        items = sort_by_pinyin(category.items.all())
-
-    # Attach colour based on emoji for each item + 字母分隔用的首字母
+    # Attach colour based on emoji for each item
     for item in items:
         item.color = emoji_color(item.emoji or item.name)
         item.pinyin_initial = pinyin_initial(item.name)
-        en = (item.english_name or "").strip()
-        item.en_initial = en[0].upper() if en and en[0].isalpha() else "#"
 
     items_json = json.dumps([it.to_dict() for it in items])
 
@@ -74,7 +63,6 @@ def category_browse_view(request: Any, slug: str) -> Any:
             "items": items,
             "items_json": items_json,
             "group_info": group_info,  # [(key, "🏠", "家里和农场", 13), ...]
-            "sort_en": sort_en,
             "total": len(items),
             "total_emoji": _to_emoji_digits(len(items)),
         },
