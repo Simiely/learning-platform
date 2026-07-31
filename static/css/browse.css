@@ -34,8 +34,9 @@
     .group-tab { padding: 8px 11px; }
     .group-tab .gt-label { display: none; }
     .group-tab.active .gt-label { display: inline; }
+    /* 全部按钮：固定显示 emoji 数字，永不切换文字 */
     .group-tab[data-group="all"] .gt-count { display: inline; }
-    .group-tab[data-group="all"].active .gt-count { display: none; }
+    .group-tab[data-group="all"] .gt-label { display: none !important; }
 }
 
 .group-tab:active {
