@@ -134,6 +134,8 @@ class MultiCategoryViewTests(TestCase):
                 # 分组按钮来自 Category.groups 配置
                 for key in cat.groups:
                     self.assertIn(f'data-group="{key}"', html, f"[{cat.slug}] 缺分组按钮 {key}")
+                # 冗余 data-item-* 属性已清理（数据统一走 items_json 数组）
+                self.assertNotIn("data-item-name", html, f"[{cat.slug}] 冗余属性未清理")
 
     def test_all_categories_cards_pages(self):
         for cat in CATEGORIES:
@@ -172,3 +174,5 @@ class MultiCategoryViewTests(TestCase):
         html = resp.content.decode()
         for cat in CATEGORIES:
             self.assertIn(cat.name, html, f"首页缺分类 {cat.name}")
+            # annotate 的条目数正确渲染（模板 cat.item_count 应为 int）
+            self.assertIn(f"{len(cat.items)} 张", html, f"[{cat.slug}] 首页条目数不对")

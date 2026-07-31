@@ -40,12 +40,6 @@
     {% endifchanged %}
     <div class="b-tile" data-item-id="{{ item.id }}"
          data-group="{{ item.group }}"
-         data-item-name="{{ item.name|escapejs }}"
-         data-item-en="{{ item.english_name|escapejs }}"
-         data-item-emoji="{{ item.emoji|escapejs }}"
-         data-item-fact="{{ item.fact|escapejs }}"
-         data-item-img="{% if item.image %}{{ item.image.url }}{% endif %}"
-         data-item-audio="{% if item.audio %}{{ item.audio.url }}{% endif %}"
          style="background:{{ item.color }}"
          onclick="openBrowsePopup(this)">
         <div class="bt-emoji">{{ item.emoji|default:category.icon }}</div>

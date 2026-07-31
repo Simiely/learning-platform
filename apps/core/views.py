@@ -6,6 +6,7 @@ import json
 import random
 from typing import Any
 
+from django.db.models import Count
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
@@ -24,7 +25,8 @@ def _to_emoji_digits(n: int) -> str:
     return ''.join(mapping[c] for c in str(n))
 
 def index_view(request: Any) -> Any:
-    categories = Category.objects.prefetch_related("items").all()
+    # annotate 在 SQL 层一次性算好各分类条目数（1 次查询），模板直接渲染 cat.item_count
+    categories = Category.objects.annotate(item_count=Count("items")).all()
     return render(request, "index.html", {"categories": categories})
 
 def category_browse_view(request: Any, slug: str) -> Any:
