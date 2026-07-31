@@ -17,6 +17,15 @@ from django.views.decorators.http import require_POST
 from .image_utils import _emoji_color, _detect_image_center, _hash_tile_color
 from .models import Category, Item, LearningProgress, QuizAttempt
 
+
+def _to_emoji_digits(n: int) -> str:
+    """把数字转成 emoji 数字（如 77 -> 7️⃣7️⃣）"""
+    mapping = {
+        '0': '0️⃣', '1': '1️⃣', '2': '2️⃣', '3': '3️⃣', '4': '4️⃣',
+        '5': '5️⃣', '6': '6️⃣', '7': '7️⃣', '8': '8️⃣', '9': '9️⃣',
+    }
+    return ''.join(mapping[c] for c in str(n))
+
 def index_view(request: Any) -> Any:
     categories = Category.objects.prefetch_related("items").all()
     return render(request, "index.html", {"categories": categories})
@@ -57,6 +66,7 @@ def category_browse_view(request: Any, slug: str) -> Any:
             "items": items,
             "items_json": items_json,
             "total": len(items),
+            "total_emoji": _to_emoji_digits(len(items)),
             "group_counts": group_counts,
         },
     )

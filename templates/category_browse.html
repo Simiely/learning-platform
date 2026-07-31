@@ -25,7 +25,7 @@
 
 <!-- 分组 Tabs -->
 <div class="group-tabs" id="group-tabs-{{ category.slug }}">
-    <button class="group-tab active" data-group="all" onclick="filterGroup(this, 'all')">✨<span class="gt-count">{{ total }}</span><span class="gt-label">全部 ({{ total }})</span></button>
+    <button class="group-tab active" data-group="all" onclick="filterGroup(this, 'all')">✨<span class="gt-count">{{ total_emoji }}</span><span class="gt-label">全部 ({{ total }})</span></button>
     <button class="group-tab" data-group="farm" onclick="filterGroup(this, 'farm')">🏠<span class="gt-label">家里和农场 ({{ group_counts.farm }})</span></button>
     <button class="group-tab" data-group="wild" onclick="filterGroup(this, 'wild')">🌍<span class="gt-label">野生动物 ({{ group_counts.wild }})</span></button>
     <button class="group-tab" data-group="ocean" onclick="filterGroup(this, 'ocean')">🌊<span class="gt-label">海洋动物 ({{ group_counts.ocean }})</span></button>
