@@ -1087,6 +1087,13 @@ CSS 文件通过 `?v=YYYYMMDDx` 版本号绕过 Safari 强缓存。修改 CSS �
 - 实测：15 张 88.2MB → 51.4MB，全部 3.4~3.8MB，quality 62~98（照片肉眼几乎无差别），分辨率 100% 不变
 - 压缩不改变文件名 → DB / check_data 无需任何处理
 
+### 9. Django 模板标签参数不支持条件表达式
+- 事故：`{% ifchanged item.pinyin_initial if sort_en else item.en_initial %}` —— Django 把 ifchanged 参数按
+  空白拆成多个**变量**，`if`/`else` 被当变量解析 → 分块判断错乱，同首字母的条目每个都单独渲染分块
+- 规则：**模板标签参数只接受简单变量**；任何条件/表达式逻辑一律在视图层预计算好（如 `item.initial`），
+  模板里 `{% ifchanged item.initial %}` 单变量
+- 测试锁死：`test_letter_dividers_grouped_by_initial`（同字母合并为一个分块）
+
 
 ### 迁移步骤
 
