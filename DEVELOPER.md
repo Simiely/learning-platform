@@ -26,26 +26,30 @@
 ```
 learning-platform/
 ├── apps/core/                  # 核心应用
+│   ├── data.py                 # ⭐ 动物数据单一来源（Animal dataclass，77 只）
 │   ├── models.py               # Category, Item, LearningProgress, QuizAttempt
-│   ├── views.py                # 7 个视图 + 4 个 API
+│   ├── views.py                # 视图 + API（复用 services）
+│   ├── services.py             # 公共业务逻辑（拼音排序/首字母/进度记录）
 │   ├── image_utils.py          # emoji 取色 + 图片焦点检测
+│   ├── tests/                  # 20 个单元/视图测试
 │   └── management/commands/
-│       ├── seed_data.py        # 种子数据（53 只动物，唯一数据源）
+│       ├── seed_data.py        # 全量重建（清空旧数据，仅首启/测试用）
 │       ├── seed_sync.py        # 增量同步（Docker 部署安全）
 │       ├── sync_positions.py   # 同步图片焦点到数据库
-│       └── detect_centers.py   # OpenCV 自动检测焦点（不要用 --force）
+│       ├── detect_centers.py   # OpenCV 自动检测焦点（不要用 --force）
+│       └── check_data.py       # 校验 DB / 媒体 / data.py 三方一致
 ├── apps/users/                 # 用户模块（登录/注册/统计）
 ├── config/                     # Django 配置
-├── templates/                  # 7 个 HTML 模板
+├── templates/                  # 9 个 HTML 模板
 │   ├── base.html               # 公共布局
 │   ├── index.html              # 首页
-│   ├── category_browse.html    # 浏览模式 + 分组 Tabs
-│   ├── category_cards.html     # 卡片模式
-│   ├── category_quiz.html      # 练习模式
+│   ├── category_browse.html    # 浏览模式 + 分组 Tabs（逻辑在 static/js/browse.js）
+│   ├── category_cards.html     # 卡片模式（逻辑在 static/js/cards.js）
+│   ├── category_quiz.html      # 练习模式（逻辑在 static/js/quiz.js）
 │   ├── browse_popup.html       # 浏览弹窗
 │   └── login/register/profile.html
 ├── static/
-│   ├── css/                    # 12 个模块化 CSS 文件
+│   ├── css/                    # 13 个 CSS（含 1 个 DEPRECATED）
 │   │   ├── theme.css           # 设计令牌 + 主题
 │   │   ├── layout.css          # 导航栏 + 模式栏
 │   │   ├── buttons.css         # 按钮系统
@@ -53,22 +57,26 @@ learning-platform/
 │   │   └── ...                 # 各页面独立 CSS
 │   └── js/
 │       ├── alpine.min.js       # Alpine.js（本地！不用 CDN）
-│       ├── utils.js            # 工具函数
 │       ├── ipad-detect.js      # iPad 焦点检测
 │       ├── audio-player.js     # 音频播放 + 自动连播
 │       ├── image-zoom.js       # 图片缩放/拖拽
-│       └── confetti.js         # 礼花特效 + Web Audio 音效
-├── media/                      # 图片 + 音频（53 只动物，进 git）
-├── ANIMALS.md                  # 动物数据清单
+│       ├── confetti.js         # 礼花特效 + Web Audio 音效
+│       ├── browse.js           # 浏览模式（tiles/分组/字母分隔/已看）
+│       ├── cards.js            # 卡片模式（翻卡/随机/缩放）
+│       ├── quiz.js             # 练习模式（Alpine 组件）
+│       └── utils.js            # ⚠️ DEPRECATED (2026-07-31)，确认无引用后删除
+├── media/                      # 图片 + 音频（77 只动物，进 git）
+├── ANIMALS.md                  # 动物数据展示表（代码主源是 data.py）
 ├── DEV.md                      # 开发笔记（踩坑记录）
 ├── ADD_ANIMALS_GUIDE.md        # 新增动物操作指南
+├── TODO.md                     # 待办与已定决策
 ├── Dockerfile
-├── docker-entrypoint.sh
+├── docker-entrypoint.sh        # 已集成 check_data 校验步骤
 ├── docker-compose.yml          # ⚠️ 部署前需改数据卷路径
 └── requirements.txt
 ```
 
-> `static/css/style.css` 是模块化重构前的旧版单文件，**未在任何模板中加载**，仅作参考保留。
+> `static/css/style.css` 是模块化重构前的旧版单文件，**未在任何模板中加载**，已标记 DEPRECATED (2026-07-31)，确认无遗漏后删除。
 
 ## 数据模型
 
@@ -128,7 +136,7 @@ Safari 智能追踪防护会阻止 CDN 的 Alpine.js 访问 localStorage，导�
 iOS Safari 对 `<button>` 元素有渲染偏差。用 `<span>` 复用 badge 盒模型解决。
 
 ### 图片焦点（三套系统）
-每张图片支持三套独立焦点：`image_position`（iPhone）、`image_position_ipad_portrait`（iPad 竖屏）、`image_position_ipad_landscape`（iPad 横屏）。均在 `seed_data.py` 中手动校准，标记 `image_position_checked=True`，`detect_centers --force` 不会覆盖。
+每张图片支持三套独立焦点：`image_position`（iPhone）、`image_position_ipad_portrait`（iPad 竖屏）、`image_position_ipad_landscape`（iPad 横屏）。均在 `apps/core/data.py` 中手动校准，标记 `image_position_checked=True`，`detect_centers --force` 不会覆盖。
 
 ### 图片规则
 - **不裁剪**，保持原始比例（App 用 `object-fit: cover` + 焦点适配）
@@ -145,40 +153,44 @@ iOS Safari 对 `<button>` 元素有渲染偏差。用 `<span>` 复用 badge 盒�
 ## 数据修改规则
 
 ### ⚠️ 铁律
-**所有动物数据只能通过 `seed_data.py` 修改，禁止直接操作数据库。**
+**所有动物数据只能通过 `apps/core/data.py` 修改，禁止直接操作数据库。**
 
 ### 修改流程
 ```bash
-# 1. 编辑 seed_data.py（改焦点、科普、新增动物等）
+# 1. 编辑 apps/core/data.py（改焦点、科普、新增动物等，Animal dataclass）
 # 2. 同步到数据库
 python manage.py seed_sync
-# 3. 重启服务（Django runserver 自动重载）
+# 3. 校验一致性（媒体文件 + DB + data.py 对齐）
+python manage.py check_data
+# 4. 重启服务（Django runserver 自动重载）
 ```
 
 - `seed_sync` 用 `code` 字段做唯一键匹配，改名/换 emoji 不影响
 - 永远不会删除已有数据，只增量更新或原地修改
-- **不能用 `seed_data --force`**（Docker 环境会丢用户进度）
+- **不能用 `seed_data --force`**（会清空旧数据，Docker 环境会丢用户进度）
+- `sync_positions` 只同步三套焦点字段，不碰其他数据
 
-### seed_data.py 元组结构（11 个字段）
+### Animal dataclass 结构（apps/core/data.py，11 个字段）
 ```python
-('中文名', 'code', '英文名', 'emoji', '图片文件', '音频文件',
- '科普知识',
- 'image_position',                   # iPhone/通用焦点，如 '13% 47%'
- 'image_position_ipad_portrait',     # iPad 竖屏，如 '23% 37%'
- 'image_position_ipad_landscape',    # iPad 横屏，如 '23% 47%'
- 'group'),                           # farm/wild/ocean/reptile
+@dataclass(frozen=True)
+class Animal:
+    name: str                            # 中文名
+    code: str                            # 唯一标识，如 'polar_bear_2026072401'
+    english_name: str                    # 英文名
+    emoji: str                           # emoji（无专属用 '⬛'）
+    img_file: str                        # 图片文件名，如 'ant.jpg'
+    audio_file: str                      # 音频基名，如 'ant.mp3'
+    fact: str                            # 科普知识
+    image_position: str                  # iPhone/通用焦点，如 '13% 47%'
+    image_position_ipad_portrait: str    # iPad 竖屏，如 '23% 37%'
+    image_position_ipad_landscape: str   # iPad 横屏，如 '23% 47%'
+    group: str                           # farm/wild/ocean/reptile
 ```
 
-### ⚠️ 修改元组结构必须同步更新这些文件
-
-`seed_data.py` 的 ANIMALS 元组被多处代码直接解包使用。**增删字段后必须同步更新以下所有文件的解包表达式和 defaults 字典：**
-
-| 文件 | 解包位置 | 备注 |
-|------|---------|------|
-| `seed_sync.py` | `handle()` 中的 `for ... enumerate(ANIMALS)` | 同时更新 `defaults` 字典 |
-| `sync_positions.py` | `handle()` 中的 `for ... in ANIMALS` | 同上 |
-
-漏掉任一文件会导致容器启动时崩溃，因为 `seed_sync` 是 entrypoint 的必执行步骤（`set -e` 下失败即退出）。
+### ✅ 字段结构改动（2026-07-31 重构后）
+动物数据统一在 `data.py` 维护，`seed_data.py` / `seed_sync.py` / `sync_positions.py` / `gen_audio.py`
+全部通过 `from apps.core.data import ANIMALS` 读取，用 `a.xxx` 属性访问。
+**增删字段只需改 data.py 一处**，不再需要同步修改其他文件。
 
 分组可选值：`farm`（家里和农场）、`wild`（野生动物）、`ocean`（海洋动物）、`reptile`（爬虫和昆虫）
 
@@ -202,10 +214,15 @@ python manage.py seed_sync
 | `audio-player.js` | `AudioPlayer(el)` → `play(), stop(), playSequence()` | 音频播放 + 中→英自动连播 |
 | `image-zoom.js` | `ImageZoom.init()` | 图片缩放/拖拽 |
 | `confetti.js` | `Confetti.launch()`, `.playCorrectSound()`, `.playWrongSound()` | 礼花 + Web Audio 音效 |
+| `browse.js` | `browseApp({slug, csrfToken, items, markViewedUrl, resetUrl})` | 浏览模式：分组过滤/字母分隔开关/已看状态 |
+| `cards.js` | `cardsApp({items, csrfToken, markViewedUrl})` | 卡片模式：翻卡/随机/缩放 |
+| `quiz.js` | `quizApp({categorySlug, csrfToken, questionUrl, submitUrl, quizUrl, browseUrl})` | 练习模式：10 题问答/连播/提交 |
+| `utils.js` | — | ⚠️ DEPRECATED (2026-07-31)，未使用，确认后删除 |
 
 ### 关键设计规则
-- `ipad-detect.js` 和 `utils.js` 在 `<head>` 中**同步加载**（无 `defer`）
-- **CSS 版本号**：修改 CSS/JS 后更新模板中 `?v=YYYYMMDDx`，否则 Safari 强缓存不更新
+- `ipad-detect.js` 在 `<head>` 中**同步加载**（无 `defer`）；`utils.js` 已 DEPRECATED 计划移除
+- 页面逻辑 JS（browse/cards/quiz）在模板底部以 `xxxApp({...})` 初始化，配置项由模板内联传入
+- **CSS/JS 版本号**：修改 CSS/JS 后更新模板中 `?v=YYYYMMDDx`，否则 Safari 强缓存不更新
 - iPad 检测用 `screen.width >= 768`（物理像素），不用 `window.innerWidth`
 - 每个函数声明末尾加分号：`function foo() { ... };`
 
@@ -226,7 +243,7 @@ python manage.py seed_sync
 | 发音按钮样式丢失 | 页面没加载对应 CSS 模块 | 确认 `.ph-*` 样式在 `layout.css` |
 | 翻卡时音频串音 | `playSequence` 未取消旧序列 | 检查 `sequenceId` 机制 |
 | 首次加载不发音 | 浏览器 autoplay 拦截 | 已加解锁逻辑，用户点屏幕即可 |
-| Docker 部署后异常 | 元组顺序错 | 从 seed_data.py 校验 |
+| Docker 部署后异常 | data.py 数据问题 | 跑 `manage.py check_data` 校验三方一致 |
 | 音频 404 | 磁盘文件名与 DB 不一致 | seed_data 用 `_write_media_file()` 覆写 |
 | CSS 改了不生效 | Safari 强缓存 | 更新模板 `?v=` 版本号 |
 | 练习模式容器塌缩 | quiz.css 缺少全视口样式 | 确认 `.container-quiz` 含 `height: calc(var(--vh)*100-52px)` |
@@ -283,12 +300,17 @@ docker compose pull && docker compose up -d
 
 ## 文档索引
 
-| 文件 | 用途 |
-|------|------|
-| `ANIMALS.md` | 动物数据清单（含全部焦点值） |
-| `DEV.md` | 开发笔记（详细踩坑历史，改前必读） |
-| `ADD_ANIMALS_GUIDE.md` | 新增动物完整操作指南 |
-| `TODO.md` | 待办事项 |
+| 文件 | 用途 | 什么时候看 |
+|------|------|-----------|
+| `README.md` | 项目门面 / 快速上手 | 第一次接触项目 |
+| `ANIMALS.md` | 动物数据展示表（77 只、焦点、批次） | 查动物信息 / 核对焦点 |
+| `DEVELOPER.md`（本文） | 架构 / 数据模型 / 数据修改规则 / 前端架构 | 改代码前必读 |
+| `ADD_ANIMALS_GUIDE.md` | 新增动物完整操作指南 | 要加动物时 |
+| `DEV.md` | 开发笔记（详细踩坑历史） | 排错时 |
+| `TODO.md` | 待办事项 + 已定决策 | 接手下一次任务时 |
+
+> 文档与代码的对应关系：**动物数据以 `apps/core/data.py` 为准**，ANIMALS.md 是它的展示版，
+> 二者需保持一致；改完数据跑 `python manage.py check_data` 可自动校验。
 
 ---
 

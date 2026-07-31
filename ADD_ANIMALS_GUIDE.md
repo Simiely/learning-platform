@@ -1,7 +1,10 @@
 # 增加新动物操作指南 / How to Add New Animals
 
 > 适用项目：learning-platform（Django + Alpine.js 幼儿认知闪卡平台）
-> 最后更新：2026-07-30
+> 最后更新：2026-07-31（适配模块化重构：数据源改为 apps/core/data.py）
+>
+> 📚 **相关文档**：动物总表见 [`ANIMALS.md`](./ANIMALS.md)；架构/数据模型见 [`DEVELOPER.md`](./DEVELOPER.md)；
+> 踩坑记录见 [`DEV.md`](./DEV.md)；待办决策见 [`TODO.md`](./TODO.md)
 
 ---
 
@@ -16,7 +19,7 @@ Phase 1 ── 确定动物清单
 Phase 2 ── 逐只搜索确认图片（串行：一只一只来，所有大图确认完才到下一阶段）
               │
               ▼
-Phase 3 ── 批量入库（修改 seed_data.py + 生成音频 + seed_data --force）
+Phase 3 ── 批量入库（修改 apps/core/data.py + 生成音频 + seed_sync）
               │
               ▼
 Phase 4 ── 手工校准 3 种模式的图片焦点
@@ -64,18 +67,20 @@ new-animals/
 
 ### 全部大图确认后，统一执行以下操作：
 
-#### 步骤 1：修改 `seed_data.py`
+#### 步骤 1：修改 `apps/core/data.py` ⭐（单一数据源）
 
-打开 `apps/core/management/commands/seed_data.py`，在 `ANIMALS` 列表末尾添加新动物元组。
+打开 `apps/core/data.py`，在 `ANIMALS` 列表末尾添加新动物 `Animal(...)` 实例。
+**只需改这一个文件**——`seed_data.py` / `seed_sync.py` / `sync_positions.py` / `gen_audio.py`
+都会自动从它读取，无需同步修改。
 
-**元组格式**（11 个字段）：
+**Animal dataclass 格式**（11 个字段）：
 
 ```python
-(
+Animal(
     '中文名',                  # name
-    '动物名_20260727XX',       # code — 格式：英文小写_日期+序号
+    '动物名_20260731XX',       # code — 格式：英文小写_日期+序号
     'English Name',           # english_name
-    '🐱',                     # emoji
+    '🐱',                     # emoji（没有专属 emoji 的用 '⬛'）
     'animal.{ext}',           # img_file — 图片文件名（原图格式）
     'animal.mp3',             # audio_file — 音频文件名（三个目录共用）
     '科普知识文字...',          # fact — 1-2 句科普
@@ -102,9 +107,10 @@ new-animals/
 | 第1批 | 2026-07-23 | `{name}_2026072301` ~ `_2026072321` | 21 |
 | 第2批 | 2026-07-24 | `{name}_2026072401` ~ `_2026072420` | 20 |
 | 第3批 | 2026-07-29 | `{name}_2026072901` ~ `_2026072912` | 12 |
-| 第4批 | 2026-07-29 | `{name}_2026072913` | 1（梅花鹿） |
+| 第4批 | 2026-07-29 | `{name}_2026072913` | 1（鹿） |
 | 第5批 | 2026-07-29 | `{name}_2026072914` ~ `_2026072920` | 7 |
 | 第6批 | 2026-07-30 | `{name}_2026073001` ~ `_2026073006` | 6 |
+| 第7批 | 2026-07-31 | `{name}_2026073101` ~ `_2026073110` | 10 |
 | 新增 | **当天日期** | `{name}_当天日期XX`（从 01 开始） | 新批次 |
 
 #### 步骤 2：将高清图片放入 `media/images/`
@@ -115,11 +121,19 @@ cp new-animals/{animal}.jpg media/images/{animal}.jpg
 
 - **原图格式直出**，不转换格式、不缩放裁剪（jpg / png / webp 等均可）
 - **长边 ≥ 3000px**
-- 图片文件名与 `seed_data.py` 中 `img_file` 字段保持一致
+- 图片文件名与 `apps/core/data.py` 中 `img_file` 字段保持一致
 
 #### 步骤 3：生成音频（3 种语言）
 
-中文、英文、科普三个音频，文件名相同仅目录不同：
+中文、英文、科普三个音频，文件名相同仅目录不同。推荐直接用仓库根目录的 `gen_audio.py`
+（从 data.py 自动读取全部动物）：
+
+```bash
+python gen_audio.py            # 生成全部动物音频（已存在的会自动跳过）
+python gen_audio.py ant ladybug  # 或只生成指定动物
+```
+
+单只手工生成（命令示例）：
 
 ```bash
 # 中文发音（仅动物名）
@@ -137,14 +151,20 @@ edge-tts --voice zh-CN-XiaoxiaoNeural --text "水母没有大脑、没有心脏�
 #### 步骤 4：运行种子命令
 
 ```bash
+# 本地/测试环境（全量重建，会清空旧数据）
 python manage.py seed_data --force
-```
 
-`--force` 会清空已有数据并重新导入所有动物（包括新旧）。
+# 生产/Docker 环境（推荐，非破坏性增量同步）
+python manage.py seed_sync
+
+# 校验数据一致性（媒体文件 + DB + data.py 对齐）
+python manage.py check_data
+```
 
 #### 步骤 5：更新 `ANIMALS.md`
 
-添加新批次表格，更新快速筛选表中的批次和总数。
+添加新批次表格，更新快速筛选表中的批次和总数（注意：ANIMALS.md 是 data.py 的展示版，
+两者需保持一致）。
 
 ---
 
@@ -177,8 +197,8 @@ python manage.py seed_data --force
 
 ```
 需要修改:
-  apps/core/management/commands/seed_data.py    ← ANIMALS 列表加新元组（11个字段，含 group）
-  ANIMALS.md                                     ← 文档更新
+  apps/core/data.py                             ← ⭐ ANIMALS 列表加 Animal 实例（唯一数据源）
+  ANIMALS.md                                     ← 文档更新（展示表，与 data.py 保持一致）
 
 需要新增（每只动物）:
   media/images/{animal}.jpg                      ← 图片
@@ -190,6 +210,9 @@ python manage.py seed_data --force
 **无需修改的文件**（系统自动适配）：
 
 ```
+  apps/core/management/commands/seed_data.py    — 自动从 data.py 读取
+  apps/core/management/commands/seed_sync.py    — 自动从 data.py 读取
+  apps/core/management/commands/sync_positions.py — 自动从 data.py 读取
   apps/core/models.py           — Item 模型已有完整字段
   apps/core/views.py            — 视图自动从 DB 加载所有 Item
   templates/*.html              — 模板自动渲染所有 Item
@@ -202,14 +225,24 @@ python manage.py seed_data --force
 ## Pexels 图片搜索与下载
 
 > 使用 **Pexels 官方 API**（首选）搜索图片素材。免费注册 https://www.pexels.com/api/ 获取 API Key。
-> ⚠️ 免费版每月仅 200 次请求，务必节约使用，每次只搜 1 页（per_page=20）。
+> Key 通过**环境变量** `PEXELS_KEY` 提供（不入库）。网络代理通过 `HTTPS_PROXY` 提供（可选）。
+> ⚠️ 免费版每月仅 200 次请求，务必节约使用，每次只搜 1 页。
 
-### 方案 A：Pexels 官方 API（✅ 首选）
+### 方案 A：Pexels 官方 API（✅ 首选，已内置脚本）
+
+仓库自带 `scripts/pexels_api_search.py`，会自动搜索并下载 20 张缩略图到 `new-animals/references/<name>/`：
+
+```bash
+export PEXELS_KEY="你的API_KEY"        # 环境变量提供 Key
+python scripts/pexels_api_search.py jellyfish
+```
+
+手动调用 API 的参考代码：
 
 ```python
-import requests
+import requests, os
 
-API_KEY = "你的API_KEY"  # 从 https://www.pexels.com/api/ 获取
+API_KEY = os.environ["PEXELS_KEY"]  # 从环境变量读取，不要硬编码
 headers = {"Authorization": API_KEY}
 
 # 搜索：每页 20 张，只取 page=1
@@ -240,7 +273,7 @@ pip install playwright playwright-stealth
 python -m playwright install chromium
 ```
 
-搜索脚本见 `scripts/pexels_search.py`，替换动物名即可使用。
+搜索参考实现见 `scripts/pexels_api_search.py`（或直接用 pexels-reference-finder 技能），替换动物名即可使用。
 
 ### 下载高清原图（用户确认后）
 
@@ -284,10 +317,12 @@ pip install edge-tts
 
 ## 调试和验证
 
-1. **检查焦点**：运行 `python manage.py runserver`，在浏览器中查看各模式下的图片显示
-2. **检查分组**：在浏览模式页面顶部查看 Tabs，确认新动物出现在正确的分组中
-3. **检查排序**：确认拼音排序正确
-4. **音频文件**：确认三个目录都有对应文件，否则播放按钮会变灰色
+1. **数据一致性**：运行 `python manage.py check_data`，自动校验 DB / 媒体文件 / data.py 三方一致
+2. **检查焦点**：运行 `python manage.py runserver`，在浏览器中查看各模式下的图片显示
+3. **检查分组**：在浏览模式页面顶部查看 Tabs，确认新动物出现在正确的分组中
+4. **检查排序**：确认拼音排序正确
+5. **音频文件**：确认三个目录都有对应文件，否则播放按钮会变灰色
+6. **自动化测试**：运行 `python manage.py test apps.core`（20 个测试，含数据完整性校验）
 
 ### 验证分组数量
 

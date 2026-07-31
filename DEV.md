@@ -2,6 +2,10 @@
 
 记录开发过程中遇到的关键问题及解决方案。
 
+> ⚠️ 2026-07-31 模块化重构后：**动物数据源是 `apps/core/data.py`**（Animal dataclass，77 只），
+> 不再是 `seed_data.py` 的元组。本文档涉及"数据源/动物数量/文件结构"的旧表述已修正；
+> 历史问题描述（Safari/iPad/音频等）仍有效，作为排错参考。
+
 ---
 
 ## 布局 & CSS
@@ -13,10 +17,10 @@
 ### 图片焦点校准
 
 - `image_utils.py` 用 OpenCV saliency 检测图片视觉重心，但检测的是整只动物的几何中心，不是脸部
-- 所有 `image_position` 值已在 `seed_data.py` 的 ANIMALS 表格中手动校准，标记 `image_position_checked=True`
+- 所有 `image_position` 值已在 `apps/core/data.py` 的 ANIMALS 列表手动校准，标记 `image_position_checked=True`
 - **不要用 `detect_centers --force` 覆盖手调值**
 - 卡片模板中 `centerPos()` 对纵向做 ×0.65 上偏补偿
-- 修改焦点：改 `seed_data.py` 中对应动物的 `'XX% YY%'`，然后 `seed_data --force`
+- 修改焦点：改 `apps/core/data.py` 中对应动物的 `'XX% YY%'`，然后 `sync_positions`（或 `seed_data --force`）
 
 ### 模式栏按钮对齐
 
@@ -83,12 +87,14 @@ position: absolute; top: 10px; opacity: 0.5; pointer-events: none;
 
 ## 数据 & 后端
 
-### 种子数据（seed_data）
+### 种子数据（apps/core/data.py）
 
-- `ANIMALS` 表格包含 **53 只动物**的完整数据：code、中英名、emoji、图片、三语音频、科普、iPhone 焦点 + iPad 竖屏/横屏双焦点
-- 每行 10 字段：`(name, code, english_name, emoji, img_file, audio_file, fact, image_position, image_position_ipad_portrait, image_position_ipad_landscape)`
-- `seed_data --force` 覆盖已有数据；不加 `--force` 时检测到已有数据则跳过
+- **2026-07-31 重构后**：动物数据统一在 `apps/core/data.py`（`Animal` dataclass，**77 只**），
+  `seed_data.py` / `seed_sync.py` / `sync_positions.py` / `gen_audio.py` 全部从它读取，不再各自维护
+- 每只 11 字段：`(name, code, english_name, emoji, img_file, audio_file, fact, image_position, image_position_ipad_portrait, image_position_ipad_landscape, group)`
+- `seed_data --force` 覆盖已有数据（清空重建）；生产/Docker 用 `seed_sync`（非破坏增量）
 - `image_position_checked=True` 防止 `detect_centers` 覆盖手调值
+- `check_data` 命令可校验 DB / 媒体 / data.py 三方一致
 
 ### N+1 查询修复
 
@@ -263,14 +269,15 @@ viewport meta 加 `user-scalable=no`，阻止浏览器默认双击缩放。
 
 **修复**：canvas 尺寸 = 逻辑像素 × DPR（上限2），ctx.scale(dpr, dpr) 映射坐标。CSS 尺寸保持逻辑像素。
 
-### 动物数据清单（2026-07-23）
+### 动物数据清单（2026-07-23，2026-07-31 更新）
 
-`ANIMALS.md` 是所有动物数据的主数据源（21 已上线 + 20 新增 + 12 第3批 = 共 53 只）。
-修改动物内容（增减、科普、焦点）先编辑这个文件，再同步到 `seed_data.py`。
+**2026-07-31 重构后**：代码级主数据源是 `apps/core/data.py`（`Animal` dataclass，77 只）。
+`ANIMALS.md` 是它的**展示文档**（含全部焦点值），改数据时两者需保持一致。
+修改动物内容（增减、科普、焦点）直接编辑 `apps/core/data.py`。
 
-**焦点调整工作流**（2026-07-24 优化）：
+**焦点调整工作流**（2026-07-24 优化，2026-07-31 更新）：
 - 所有焦点都是基于中心 `50% 50%` 的相对偏移
-- 修改 `seed_data.py` → `python manage.py seed_data --force` 刷新数据库
+- 修改 `apps/core/data.py` → `python manage.py sync_positions`（只同步焦点）或 `seed_data --force`（全量）
 - 服务不需要重启，刷新前端页面即可
 
 ### iPad / iPhone 双套图片焦点（2026-07-24）
@@ -684,7 +691,7 @@ grep -l "getImagePos\|image_position_ipad\|screen.width >= 768" templates/*.html
 docker compose logs learning-platform
 # 确认 seed_sync 执行
 docker compose exec learning-platform python manage.py shell -c "from apps.core.models import Item; print(Item.objects.count())"
-# 应该输出 53
+# 应该输出 77
 ```
 
 ### 5. 本地开发环境
@@ -693,7 +700,7 @@ docker compose exec learning-platform python manage.py shell -c "from apps.core.
 # 推荐运行命令
 cd learning-platform
 .venv/Scripts/python.exe manage.py runserver localhost:8000
-# 改完 seed_data.py 后
+# 改完 data.py 后
 .venv/Scripts/python.exe manage.py seed_sync
 # 无需重启，Django dev server 自动重载
 ```
@@ -940,13 +947,16 @@ CSS 文件通过 `?v=YYYYMMDDx` 版本号绕过 Safari 强缓存。修改 CSS �
 1. 更新 `base.html` 中全局加载的 CSS（theme/layout/buttons/utils）版本号
 2. 更新各页面 `{% block extra_css %}` 中页面专属 CSS 版本号
 
-### 最终文件清单
+### 最终文件清单（2026-07-31 更新）
 
 | 类型 | 数量 | 文件 |
 |------|------|------|
-| CSS 模块 | 12 | theme, layout, buttons, utils, index, browse, popup, cards, quiz, auth, profile, zoom |
-| JS 模块 | 5 | utils, ipad-detect, audio-player, image-zoom, confetti（+ alpine.min.js） |
+| CSS 模块 | 13 | theme, layout, buttons, utils, index, browse, popup, cards, quiz, auth, profile, zoom（+ style.css 已 DEPRECATED） |
+| JS 模块 | 8 | ipad-detect, audio-player, image-zoom, confetti, browse, cards, quiz（+ alpine.min.js；utils.js 已 DEPRECATED） |
 | 模板 | 9 | base, index, category_browse, category_cards, category_quiz, browse_popup, login, register, profile |
+
+> 2026-07-31 第二次 JS 抽取：browse/cards/quiz 页面逻辑已从模板内联脚本移到独立 JS 文件，
+> 模板只保留 `xxxApp({...})` 初始化调用；URL 均用 `{% url %}` 生成。
 
 ---
 
@@ -954,17 +964,20 @@ CSS 文件通过 `?v=YYYYMMDDx` 版本号绕过 Safari 强缓存。修改 CSS �
 
 ### 需求
 
-53 只动物全部混在一个网格中，浏览时不方便查找。需要按类别分组显示。
+动物全部混在一个网格中，浏览时不方便查找。需要按类别分组显示。
 
 ### 方案选择
 
 选择 **方案 B（顶部 Tabs 切换）**，仅修改浏览模式，不影响卡片和练习模式：
 
 ```
-[ 全部 (53) | 🏠 家里和农场 (10) | 🌍 野生动物 (21) | 🌊 海洋动物 (10) | 🦎 爬虫和昆虫 (12) ]
+[ 全部 (77) | 🏠 家里和农场 (13) | 🌍 野生动物 (34) | 🌊 海洋动物 (14) | 🦎 爬虫和昆虫 (16) ]
 ```
 
 点击 Tab 切换，网格自动显示/隐藏对应组的动物。
+> 数量为 2026-07-31 第7批上线后的最新值（共 77 只）。
+> 2026-07-31 更新：iPhone 窄屏下分组按钮默认只显示 emoji（全部按钮显示 emoji 数字如 7️⃣7️⃣），
+> 点击选中按钮才展开文字；另有 🔤 按钮切换拼音字母分隔块（默认关闭）。
 
 ### 零交叉分组设计
 
@@ -972,10 +985,10 @@ CSS 文件通过 `?v=YYYYMMDDx` 版本号绕过 Safari 强缓存。修改 CSS �
 
 | 分组 | slug | 数量 | 划分逻辑 |
 |------|------|------|---------|
-| 🏠 家里和农场 | `farm` | 9 | 孩子日常能接触到的家养/农场动物：狗猫兔马牛羊鸡鸭猪 |
-| 🌍 野生动物 | `wild` | 20 | 动物园或自然纪录片：狮虎象长颈鹿斑马熊猫猴子，含飞鸟（鹰/猫头鹰/鹦鹉） |
-| 🌊 海洋动物 | `ocean` | 6 | 海洋环境：海豚鲸鲨鱼企鹅螃蟹 |
-| 🦎 爬虫和昆虫 | `reptile` | 6 | 小型爬行类：蛇鳄鱼青蛙乌龟蝴蝶蜜蜂 |
+| 🏠 家里和农场 | `farm` | 13 | 孩子日常能接触到的家养/农场动物 |
+| 🌍 野生动物 | `wild` | 34 | 动物园或自然纪录片 |
+| 🌊 海洋动物 | `ocean` | 14 | 海洋环境 |
+| 🦎 爬虫和昆虫 | `reptile` | 16 | 小型爬行类和昆虫 |
 
 ### 关键决策点
 
@@ -1003,7 +1016,7 @@ CSS 文件通过 `?v=YYYYMMDDx` 版本号绕过 Safari 强缓存。修改 CSS �
    ```
    `to_dict()` 新增 `"group": self.group or ""`
 
-2. **`seed_data.py`** — 元组从 10 字段扩展为 11 字段，`group` 作为第 11 位。53 只动物按组重排（同组在一起），方便后续维护
+2. **`apps/core/data.py`** — `Animal` dataclass 含 11 字段，`group` 为第 11 位。77 只动物按组排列，方便维护（2026-07-31 重构：数据从 seed_data.py 元组迁移到 data.py dataclass）
 
 3. **`views.py`** — `category_browse_view` 新增 `group_counts` 统计和 `total` 传递给模板
 

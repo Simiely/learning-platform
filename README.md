@@ -1,6 +1,6 @@
 # Lets Learn —— 幼儿互动学习卡片
 
-一个基于 **Django + Alpine.js** 的幼儿识字/认知闪卡平台，支持 **浏览、卡片、练习** 三种学习模式，专为触屏（iPad / iPhone）设计。内置 **61 种动物**（分 4 组）的中英文对照学习，配三语自动发音。
+一个基于 **Django + Alpine.js** 的幼儿识字/认知闪卡平台，支持 **浏览、卡片、练习** 三种学习模式，专为触屏（iPad / iPhone）设计。内置 **77 种动物**（分 4 组）的中英文对照学习，配三语自动发音。
 
 ## 快速开始
 
@@ -9,7 +9,7 @@ git clone https://github.com/Simiely/learning-platform.git
 cd learning-platform
 python -m venv venv && source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python manage.py migrate && python manage.py seed_data
+python manage.py migrate && python manage.py seed_sync
 python manage.py runserver 0.0.0.0:8000
 ```
 
@@ -31,6 +31,11 @@ python manage.py runserver 0.0.0.0:8000
 看操作手册 → **[`ADD_ANIMALS_GUIDE.md`](./ADD_ANIMALS_GUIDE.md)**
 
 包含：图片素材下载 → 音频生成（edge-tts）→ 数据整合 → 入库完整流程。
+
+### 🐾 想看全部动物数据？
+看动物总表 → **[`ANIMALS.md`](./ANIMALS.md)**
+
+包含：77 只动物的中英名、emoji、图片/音频、科普文案、三套图片焦点、批次进度。
 
 ### 🧑‍💻 想开发或改代码？
 看开发者文档 → **[`DEVELOPER.md`](./DEVELOPER.md)**

@@ -3,6 +3,17 @@
 > 本文件用于跨设备 / 跨 AI 会话接力。代码、迁移、媒体素材、文档均已推送至 `master`，
 > 换电脑 `git clone` 即可获得完整可运行状态。下面是需要**继续推进**的事项和**已定决策**。
 
+## 〇、文档索引（维护时先看这里）
+
+| 想干什么 | 看哪个文档 |
+|---------|-----------|
+| 了解项目整体架构 / 数据模型 / 路由 | `DEVELOPER.md` |
+| 新增一只动物（完整流程） | `ADD_ANIMALS_GUIDE.md` |
+| 查动物数据总表（77 只、焦点、批次） | `ANIMALS.md` |
+| 排错 / 踩坑记录（Safari/iPad/音频/Docker） | `DEV.md` |
+| 待办与已定决策 | 本文档 |
+| 项目门面 / 快速上手 | `README.md` |
+
 ## 一、待做清单
 
 ### A. 服务器实际部署（核心，尚未真做）
@@ -10,25 +21,27 @@
 ```bash
 pip install -r requirements.txt
 python manage.py migrate            # 应用迁移 0012，建立 Item.group 字段
-python manage.py seed_data --force  # 确定性重建 61 只动物 + 媒体关联（不依赖本地库）
+python manage.py seed_sync          # 非破坏性同步（推荐，部署链路用这个）
+python manage.py seed_data --force  # 或全量重建（会清空旧数据，仅首启/测试用）
+python manage.py check_data         # 校验 DB / 媒体 / data.py 三方一致
 python manage.py collectstatic      # 用 gunicorn 生产部署时需要
 ```
-执行后状态 = 本地当前状态（61 只、4 分组、每张图 + 3 段语音齐全）。
+执行后状态 = 本地当前状态（77 只、4 分组、每张图 + 3 段语音齐全）。
+> Docker 部署链路（docker-entrypoint.sh）已自动执行 `seed_sync` + `check_data`，无需手动。
 
 ### B. ALLOWED_HOSTS 补域名 ⚠️
 `config/settings.py` 目前只含 `127.0.0.1`。部署到真实服务器前，必须通过环境变量或配置把
 服务器域名 / IP 加入 `ALLOWED_HOSTS`，否则 Django 拒访。
 
 ### C. 图片焦点校准
-第3~5批 31 只动物目前已校准焦点。如需微调，改
-`apps/core/management/commands/seed_data.py` 对应元组的焦点值，再跑 `python manage.py sync_positions`。
+第3~7批动物焦点已校准。如需微调，改
+`apps/core/data.py` 对应 `Animal` 的焦点字段（image_position / image_position_ipad_portrait /
+image_position_ipad_landscape），再跑 `python manage.py sync_positions`（只同步焦点，不碰其他字段）。
 焦点约定见 `DEVELOPER.md`。
 
 ### D. 后续动物批次
-- **中优先级 8 种**：✅ **已全部上线**（第4批梅花鹿 + 第5批棕熊/大猩猩/孔雀/火烈鸟/天鹅/萤火虫/蜘蛛）。
-- **精选 6 种**：水母、海星、蝙蝠、树懒、水獭、老鼠，待规划。
-- 音频生成工具 `gen_audio.py`（仓库根目录）可直接复用：在 ANIMALS 列表追加
-  `(base, 中文名, 英文名, 科普文案)`，运行 `python gen_audio.py` 即可。
+- ✅ **第1~7批共 77 只已全部上线**（详见 `ANIMALS.md`）。
+- 音频生成工具 `gen_audio.py`（仓库根目录）从 `apps/core/data.py` 读取全部动物，无需单独维护列表。
 - 图片下载工具 `download_unsplash.py`（仓库根目录）用于获取候选参考图。
 
 ### E. 本地预览服务（验证完可停）
@@ -36,25 +49,30 @@ python manage.py collectstatic      # 用 gunicorn 生产部署时需要
 
 ## 二、已定决策（无需再问，直接照做）
 
-1. **Emoji 规则**：动物有专属 emoji 用自己；没有的，用其**所属分组的图标**。
-   - 分组图标：家里和农场 🏠 / 野生动物 🌍 / 海洋动物 🌊 / 爬虫和昆虫 🦎
-   - 实例：蜻蜓（无专属）→ 🦎；海马（无专属）→ 🌊；变色龙/蜥蜴（无专属）→ 🦎
+1. **Emoji 规则**：动物有专属 emoji 用自己；**没有专属 emoji 的统一用 `⬛` 黑色占位方块**。
+   - 实例：海马、鸵鸟、河狸（无专属 emoji）→ ⬛
    - 有专属 emoji 的维持不变：蚂蚁🐜、瓢虫🐞、蜗牛🐌、刺猬🦔、仓鼠🐹、海龟🐢、章鱼🐙、海狮🦭 等。
+   - `emoji_color()` 对 ⬛ 特殊处理：中间色 `#3C3C3C` → 加深后得 `#121212`（2026-07-31 定）。
 2. **图片不裁正方形**：`media/images/` 现有图均为长方形，App 用 `object-fit: cover` + 焦点适配。
    高清图原样搬入即可（长边 ≥ 3000px）。
 3. **媒体文件命名**：图片/音频用简单英文名做基名（如 `ant.jpg` / `ant.mp3`），
-   须与 `seed_data.py` 中该动物的 `img_file` / `audio_file` 基名一致。
-4. **批次结构**：第1批+第2批共 41 只已上线；第3批 12 只已上线（详见 `ANIMALS.md`）。
+   须与 `apps/core/data.py` 中该动物的 `img_file` / `audio_file` 基名一致。
+4. **批次结构**：第1~7批共 77 只已上线（详见 `ANIMALS.md`）。
 5. **依赖版本**：`requirements.txt` 已统一为本地运行环境版本（Django 6.0.7 等），部署照此安装。
+6. **图片压缩不需要**（2026-07-31 用户明确）：`media/images/` 原图直出（当前共 191MB，最大 13MB），
+   不压缩、不做懒加载，维持现状。此项**不再作为待办**。
+7. **动物数据单一来源**：`apps/core/data.py`（Animal dataclass）是唯一数据源，
+   seed_data / seed_sync / sync_positions / gen_audio 全部从它读取，勿在其他文件维护动物数据。
 
 ## 三、需要你（用户）提供的密钥 / 凭据
 
-以下密钥**刻意不入库**（安全），新环境需由用户提供给 AI：
+以下密钥**刻意不入库**（安全），新环境需由用户通过环境变量提供给 AI：
 
-| 用途 | 名称 | 说明 |
-|------|------|------|
-| 参考图搜索 | Unsplash Access Key | `download_unsplash.py` 调用 Unsplash API 搜图 |
-| 参考图搜索 | Pexels API Key | 备用图源（Pexels API 搜图 + CDN 下载） |
+| 用途 | 环境变量 | 说明 |
+|------|---------|------|
+| 参考图搜索 | `UNSPLASH_ACCESS_KEY` | `download_unsplash.py` 调用 Unsplash API 搜图 |
+| 参考图搜索 | `PEXELS_KEY` | 备用图源（Pexels API 搜图 + CDN 下载） |
+| 网络代理（可选） | `HTTPS_PROXY` / `HTTP_PROXY` | 两个搜图脚本自动读取；未设置则直连 |
 | 代码仓库 | GitHub PAT | 推送到 `Simiely/learning-platform` 用；推送 URL 格式为
   `https://x-access-token:<PAT>@github.com/...`（用户名固定 `x-access-token`） |
 
