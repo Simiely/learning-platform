@@ -48,8 +48,12 @@ def category_browse_view(request: Any, slug: str) -> Any:
         g = it.group or ""
         if g in group_counts:
             group_counts[g] += 1
-    # (key, label, count) 列表，方便模板循环渲染
-    group_info = [(key, label, group_counts.get(key, 0)) for key, label in groups.items()]
+    # (key, icon, label_text, count) — label 拆成 emoji 图标 + 纯文字，
+    # 避免模板 slice 切坏 ZWJ 组合 emoji，也避免 iPad 宽屏下 emoji 重复显示
+    group_info = []
+    for key, label in groups.items():
+        icon, _, text = label.partition(" ")
+        group_info.append((key, icon, text or label, group_counts.get(key, 0)))
 
     return render(
         request,
@@ -58,7 +62,7 @@ def category_browse_view(request: Any, slug: str) -> Any:
             "category": category,
             "items": items,
             "items_json": items_json,
-            "group_info": group_info,  # [(key, "🏠 家里和农场", 13), ...]
+            "group_info": group_info,  # [(key, "🏠", "家里和农场", 13), ...]
             "total": len(items),
             "total_emoji": _to_emoji_digits(len(items)),
         },

@@ -3,7 +3,7 @@
 {% block title %}{{ category.name }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/browse.css' %}?v=20260731a">
+<link rel="stylesheet" href="{% static 'css/browse.css' %}?v=20260731b">
 <link rel="stylesheet" href="{% static 'css/popup.css' %}?v=20260726b">
 <link rel="stylesheet" href="{% static 'css/zoom.css' %}?v=20260726b">
 <script src="{% static 'js/audio-player.js' %}"></script>
@@ -27,8 +27,8 @@
 <!-- 分组 Tabs（动态：按 Category.groups 配置渲染） -->
 <div class="group-tabs" id="group-tabs-{{ category.slug }}">
     <button class="group-tab active" data-group="all" onclick="filterGroup(this, 'all')"><span class="gt-count">{{ total_emoji }}</span><span class="gt-label">全部 ({{ total }})</span></button>
-    {% for key, label, count in group_info %}
-    <button class="group-tab" data-group="{{ key }}" onclick="filterGroup(this, '{{ key }}')">{{ label|slice:":1" }}<span class="gt-label">{{ label }} ({{ count }})</span></button>
+    {% for key, icon, text, count in group_info %}
+    <button class="group-tab" data-group="{{ key }}" onclick="filterGroup(this, '{{ key }}')"><span class="gt-count">{{ icon }}</span><span class="gt-label">{{ text }} ({{ count }})</span></button>
     {% endfor %}
     <button class="group-tab letter-toggle" id="letter-toggle" onclick="toggleLetters(this)" title="字母分隔">🔤</button>
 </div>
