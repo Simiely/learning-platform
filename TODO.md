@@ -23,7 +23,7 @@ pip install -r requirements.txt
 python manage.py migrate            # 应用迁移 0012，建立 Item.group 字段
 python manage.py seed_sync          # 非破坏性同步（推荐，部署链路用这个）
 python manage.py seed_data --force  # 或全量重建（会清空旧数据，仅首启/测试用）
-python manage.py check_data         # 校验 DB / 媒体 / data.py 三方一致
+python manage.py check_data         # 校验 DB / 媒体 / apps/core/data/ 三方一致
 python manage.py collectstatic      # 用 gunicorn 生产部署时需要
 ```
 执行后状态 = 本地当前状态（77 只、4 分组、每张图 + 3 段语音齐全）。

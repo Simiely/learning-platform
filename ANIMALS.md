@@ -2,8 +2,8 @@
 
 格式：`中文名 / English Name | Emoji | 图片 | 音频 | 科普 | 焦点`
 
-> ⚠️ **本文档是展示版**。动物数据的**代码级唯一来源是 `apps/core/data.py`**（Animal dataclass）。
-> 修改数据（焦点/科普/新增）请改 data.py，然后 `seed_sync` / `seed_data --force`，
+> ⚠️ **本文档是展示版**。动物数据的**代码级唯一来源是 `apps/core/data/animals.py`**（共享 CardItem）。
+> 修改数据（焦点/科普/新增）请改 apps/core/data/，然后 `seed_sync` / `seed_data --force`，
 > 最后同步更新本文档；可运行 `python manage.py check_data` 自动校验一致性。
 
 - 图片焦点 `image_position` 是 CSS object-position 格式

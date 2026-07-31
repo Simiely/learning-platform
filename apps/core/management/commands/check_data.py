@@ -1,8 +1,8 @@
-"""校验数据一致性：DB 条目、媒体文件、data.py 三者对齐。
+"""校验数据一致性：DB 条目、媒体文件、apps/core/data/ 三者对齐。
 
 检查项：
-  1. DB 中每条 Item 的 4 个媒体字段都有对应文件存在
-  2. data.py 的每只动物在 DB 中都有对应记录（code 匹配）
+  1. DB 中每条 Item 的媒体字段按 data/ 声明校验（img_file 为空 = emoji 代替，合法）
+  2. data/ 的每个条目在 DB 中都有对应记录（code 匹配）
   3. 报告缺失/多余，返回非零退出码表示有不一致（便于 CI 使用）
 """
 import os
@@ -16,7 +16,7 @@ from apps.core.models import Category, Item
 
 
 class Command(BaseCommand):
-    help = "Verify DB items, media files and data.py are aligned."
+    help = "Verify DB items, media files and apps/core/data/ are aligned."
 
     def handle(self, *args, **options):
         problems = []

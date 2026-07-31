@@ -2,23 +2,9 @@
 
 图片暂用 emoji 代替（img_file 留空），后续补充真实图片时再填入文件名。
 分组：观赏花卉 / 野花野草 / 树木 / 水生植物
+条目使用共享 CardItem（见 __init__.py）。
 """
-from dataclasses import dataclass
-
-
-@dataclass(frozen=True)
-class Plant:
-    name: str
-    code: str
-    english_name: str
-    emoji: str
-    img_file: str
-    audio_file: str
-    fact: str
-    image_position: str = "50% 50%"
-    image_position_ipad_portrait: str = "50% 50%"
-    image_position_ipad_landscape: str = "50% 50%"
-    group: str = ""
+from . import CardItem
 
 
 PLANT_GROUPS = {
@@ -29,41 +15,41 @@ PLANT_GROUPS = {
 }
 
 
-ITEMS: list[Plant] = [
+ITEMS: list[CardItem] = [
     # ---- 观赏花卉 ----
-    Plant("玫瑰", "rose_2026080101", "Rose", "🌹", "", "rose.mp3",
+    CardItem("玫瑰", "rose_2026080101", "Rose", "🌹", "", "rose.mp3",
           "玫瑰枝上的刺其实是防止动物吃它的，玫瑰花瓣还能做成香甜的玫瑰酱。", "50% 50%", "50% 50%", "50% 50%", "flower"),
-    Plant("向日葵", "sunflower_2026080102", "Sunflower", "🌻", "", "sunflower.mp3",
+    CardItem("向日葵", "sunflower_2026080102", "Sunflower", "🌻", "", "sunflower.mp3",
           "向日葵的花盘会跟着太阳转，一个花盘里其实藏着上千朵小花。", "50% 50%", "50% 50%", "50% 50%", "flower"),
-    Plant("郁金香", "tulip_2026080103", "Tulip", "🌷", "", "tulip.mp3",
+    CardItem("郁金香", "tulip_2026080103", "Tulip", "🌷", "", "tulip.mp3",
           "郁金香原产于土耳其，后来荷兰人特别喜欢它，种了漫山遍野。", "50% 50%", "50% 50%", "50% 50%", "flower"),
-    Plant("牡丹", "peony_2026080104", "Peony", "🌺", "", "peony.mp3",
+    CardItem("牡丹", "peony_2026080104", "Peony", "🌺", "", "peony.mp3",
           "牡丹被称为花中之王，是中国传统名花，花朵又大又漂亮。", "50% 50%", "50% 50%", "50% 50%", "flower"),
-    Plant("樱花", "cherry_blossom_2026080105", "Cherry Blossom", "🌸", "", "cherry_blossom.mp3",
+    CardItem("樱花", "cherry_blossom_2026080105", "Cherry Blossom", "🌸", "", "cherry_blossom.mp3",
           "樱花开放的时间很短，只有一周左右。春天看樱花是日本很有名的传统。", "50% 50%", "50% 50%", "50% 50%", "flower"),
-    Plant("薰衣草", "lavender_2026080106", "Lavender", "💜", "", "lavender.mp3",
+    CardItem("薰衣草", "lavender_2026080106", "Lavender", "💜", "", "lavender.mp3",
           "薰衣草紫色的花穗非常香，可以做成精油和香包，还能帮助放松心情。", "50% 50%", "50% 50%", "50% 50%", "flower"),
     # ---- 野花野草 ----
-    Plant("蒲公英", "dandelion_2026080107", "Dandelion", "🌼", "", "dandelion.mp3",
+    CardItem("蒲公英", "dandelion_2026080107", "Dandelion", "🌼", "", "dandelion.mp3",
           "蒲公英的种子带着小小的伞，风一吹就飞向远方，落在哪里就在哪里生根。", "50% 50%", "50% 50%", "50% 50%", "wild"),
-    Plant("三叶草", "clover_2026080108", "Clover", "🍀", "", "clover.mp3",
+    CardItem("三叶草", "clover_2026080108", "Clover", "🍀", "", "clover.mp3",
           "三叶草通常只有三片叶子，如果找到四片叶子的四叶草，传说会很幸运。", "50% 50%", "50% 50%", "50% 50%", "wild"),
-    Plant("蕨类植物", "fern_2026080109", "Fern", "🌿", "", "fern.mp3",
+    CardItem("蕨类植物", "fern_2026080109", "Fern", "🌿", "", "fern.mp3",
           "蕨类植物比恐龙出现得还早，它们不开花，靠叶子背面小小的孢子繁殖。", "50% 50%", "50% 50%", "50% 50%", "wild"),
     # ---- 树木 ----
-    Plant("仙人掌", "cactus_2026080110", "Cactus", "🌵", "", "cactus.mp3",
+    CardItem("仙人掌", "cactus_2026080110", "Cactus", "🌵", "", "cactus.mp3",
           "仙人掌住在干旱的沙漠里，把叶子变成了刺，把水分存进胖胖的身体里。", "50% 50%", "50% 50%", "50% 50%", "tree"),
-    Plant("竹子", "bamboo_2026080111", "Bamboo", "🎋", "", "bamboo.mp3",
+    CardItem("竹子", "bamboo_2026080111", "Bamboo", "🎋", "", "bamboo.mp3",
           "竹子长得特别快，一天能长高几十厘米，是熊猫最爱的食物。", "50% 50%", "50% 50%", "50% 50%", "tree"),
-    Plant("枫树", "maple_2026080112", "Maple", "🍁", "", "maple.mp3",
+    CardItem("枫树", "maple_2026080112", "Maple", "🍁", "", "maple.mp3",
           "枫树的叶子到了秋天会变成火红色，加拿大国旗上的图案就是枫叶。", "50% 50%", "50% 50%", "50% 50%", "tree"),
-    Plant("银杏树", "ginkgo_2026080113", "Ginkgo", "🍂", "", "ginkgo.mp3",
+    CardItem("银杏树", "ginkgo_2026080113", "Ginkgo", "🍂", "", "ginkgo.mp3",
           "银杏是古老的树种，被称为活化石，它扇形的叶子秋天会变成金黄色。", "50% 50%", "50% 50%", "50% 50%", "tree"),
-    Plant("松树", "pine_2026080114", "Pine", "🌲", "", "pine.mp3",
+    CardItem("松树", "pine_2026080114", "Pine", "🌲", "", "pine.mp3",
           "松树一年四季都是绿色的，松果就是它的种子房子，松子可以吃。", "50% 50%", "50% 50%", "50% 50%", "tree"),
-    Plant("椰子树", "coconut_palm_2026080115", "Coconut Palm", "🌴", "", "coconut_palm.mp3",
+    CardItem("椰子树", "coconut_palm_2026080115", "Coconut Palm", "🌴", "", "coconut_palm.mp3",
           "椰子树喜欢长在温暖的海边，椰子里有香甜的椰汁，壳还能做工艺品。", "50% 50%", "50% 50%", "50% 50%", "tree"),
     # ---- 水生植物 ----
-    Plant("荷花", "lotus_2026080116", "Lotus", "🪷", "", "lotus.mp3",
+    CardItem("荷花", "lotus_2026080116", "Lotus", "🪷", "", "lotus.mp3",
           "荷花从淤泥里长出来却非常干净，出淤泥而不染说的就是它，藕和莲子都能吃。", "50% 50%", "50% 50%", "50% 50%", "water"),
 ]

@@ -1,7 +1,7 @@
 # 增加新动物操作指南 / How to Add New Animals
 
 > 适用项目：learning-platform（Django + Alpine.js 幼儿认知闪卡平台）
-> 最后更新：2026-07-31（适配模块化重构：数据源改为 apps/core/data.py）
+> 最后更新：2026-07-31（适配模块化重构：数据源改为 apps/core/data/）
 >
 > 📚 **相关文档**：动物总表见 [`ANIMALS.md`](./ANIMALS.md)；架构/数据模型见 [`DEVELOPER.md`](./DEVELOPER.md)；
 > 踩坑记录见 [`DEV.md`](./DEV.md)；待办决策见 [`TODO.md`](./TODO.md)
@@ -19,7 +19,7 @@ Phase 1 ── 确定动物清单
 Phase 2 ── 逐只搜索确认图片（串行：一只一只来，所有大图确认完才到下一阶段）
               │
               ▼
-Phase 3 ── 批量入库（修改 apps/core/data.py + 生成音频 + seed_sync）
+Phase 3 ── 批量入库（修改 apps/core/data/ + 生成音频 + seed_sync）
               │
               ▼
 Phase 4 ── 手工校准 3 种模式的图片焦点
@@ -67,9 +67,9 @@ new-animals/
 
 ### 全部大图确认后，统一执行以下操作：
 
-#### 步骤 1：修改 `apps/core/data.py` ⭐（单一数据源）
+#### 步骤 1：修改 `apps/core/data/` ⭐（单一数据源）
 
-打开 `apps/core/data.py`，在 `ANIMALS` 列表末尾添加新动物 `Animal(...)` 实例。
+打开 `apps/core/data/`，在 `ANIMALS` 列表末尾添加新动物 `Animal(...)` 实例。
 **只需改这一个文件**——`seed_data.py` / `seed_sync.py` / `sync_positions.py` / `gen_audio.py`
 都会自动从它读取，无需同步修改。
 
@@ -121,16 +121,17 @@ cp new-animals/{animal}.jpg media/images/{animal}.jpg
 
 - **原图格式直出**，不转换格式、不缩放裁剪（jpg / png / webp 等均可）
 - **长边 ≥ 3000px**
-- 图片文件名与 `apps/core/data.py` 中 `img_file` 字段保持一致
+- 图片文件名与 `apps/core/data/` 中 `img_file` 字段保持一致
 
 #### 步骤 3：生成音频（3 种语言）
 
 中文、英文、科普三个音频，文件名相同仅目录不同。推荐直接用仓库根目录的 `gen_audio.py`
-（从 data.py 自动读取全部动物）：
+（从 apps/core/data/ 自动读取全部条目；必须用 `--category <slug>` 限定分类，勿全量跑）：
 
 ```bash
-python gen_audio.py            # 生成全部动物音频（已存在的会自动跳过）
-python gen_audio.py ant ladybug  # 或只生成指定动物
+python gen_audio.py --category animals   # 只生成动物分类音频（新增动物时）
+python gen_audio.py --category fruits    # 只生成果蔬分类音频
+python gen_audio.py --category animals goat  # 只生成动物分类下的指定基名
 ```
 
 单只手工生成（命令示例）：
@@ -157,13 +158,13 @@ python manage.py seed_data --force
 # 生产/Docker 环境（推荐，非破坏性增量同步）
 python manage.py seed_sync
 
-# 校验数据一致性（媒体文件 + DB + data.py 对齐）
+# 校验数据一致性（媒体文件 + DB + data/ 对齐）
 python manage.py check_data
 ```
 
 #### 步骤 5：更新 `ANIMALS.md`
 
-添加新批次表格，更新快速筛选表中的批次和总数（注意：ANIMALS.md 是 data.py 的展示版，
+添加新批次表格，更新快速筛选表中的批次和总数（注意：ANIMALS.md 是 apps/core/data/ 的展示版，
 两者需保持一致）。
 
 ---
@@ -197,8 +198,8 @@ python manage.py check_data
 
 ```
 需要修改:
-  apps/core/data.py                             ← ⭐ ANIMALS 列表加 Animal 实例（唯一数据源）
-  ANIMALS.md                                     ← 文档更新（展示表，与 data.py 保持一致）
+  apps/core/data/                             ← ⭐ ANIMALS 列表加 Animal 实例（唯一数据源）
+  ANIMALS.md                                     ← 文档更新（展示表，与 apps/core/data/ 保持一致）
 
 需要新增（每只动物）:
   media/images/{animal}.jpg                      ← 图片
@@ -210,9 +211,9 @@ python manage.py check_data
 **无需修改的文件**（系统自动适配）：
 
 ```
-  apps/core/management/commands/seed_data.py    — 自动从 data.py 读取
-  apps/core/management/commands/seed_sync.py    — 自动从 data.py 读取
-  apps/core/management/commands/sync_positions.py — 自动从 data.py 读取
+  apps/core/management/commands/seed_data.py    — 自动从 apps/core/data/ 读取
+  apps/core/management/commands/seed_sync.py    — 自动从 apps/core/data/ 读取
+  apps/core/management/commands/sync_positions.py — 自动从 apps/core/data/ 读取
   apps/core/models.py           — Item 模型已有完整字段
   apps/core/views.py            — 视图自动从 DB 加载所有 Item
   templates/*.html              — 模板自动渲染所有 Item
@@ -317,7 +318,7 @@ pip install edge-tts
 
 ## 调试和验证
 
-1. **数据一致性**：运行 `python manage.py check_data`，自动校验 DB / 媒体文件 / data.py 三方一致
+1. **数据一致性**：运行 `python manage.py check_data`，自动校验 DB / 媒体文件 / apps/core/data/ 三方一致
 2. **检查焦点**：运行 `python manage.py runserver`，在浏览器中查看各模式下的图片显示
 3. **检查分组**：在浏览模式页面顶部查看 Tabs，确认新动物出现在正确的分组中
 4. **检查排序**：确认拼音排序正确

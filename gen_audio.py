@@ -17,7 +17,7 @@
 
 注意：
   - 数据来源统一为 apps/core/data/（与 seed_data/seed_sync 共用单一数据源）。
-  - 图片/音频的"基名"就是 data.py 中 img_file/audio_file 的基名。
+  - 图片/音频的"基名"就是 apps/core/data/ 中条目 img_file/audio_file 的基名。
   - ⚠️ 动物等已有分类的音频不要用无参数全量生成——会覆盖已有文件，
     中途失败会留下 0 字节损坏文件。加新分类用 --category 只生成新增部分。
 """

@@ -8,22 +8,16 @@ CATEGORIES 列表，供 seed_data / seed_sync / sync_positions / check_data
 1. 新建 apps/core/data/<slug>.py，定义 ITEMS 列表 + <SLUG>_GROUPS 配置
 2. 在本文件 CATEGORIES 中注册一项
 3. 无需改任何命令/视图代码
-"""
-from dataclasses import dataclass, field
-from typing import Any
 
-from .animals import ANIMALS, ANIMAL_GROUPS
-from .dinosaurs import DINOSAUR_GROUPS, ITEMS as DINOSAURS
-from .fruits import FRUIT_GROUPS, ITEMS as FRUITS
-from .jobs import JOB_GROUPS, ITEMS as JOBS
-from .plants import PLANT_GROUPS, ITEMS as PLANTS
-from .space import SPACE_GROUPS, ITEMS as SPACE
-from .vehicles import VEHICLE_GROUPS, ITEMS as VEHICLES
+注意：CardItem 必须先于分类文件导入定义（分类文件用 from . import CardItem）。
+"""
+from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
 class CardItem:
-    """通用卡片条目（兼容旧 Animal 的 11 字段）。"""
+    """通用卡片条目（兼容旧 Animal 的 11 字段，所有分类共用）。"""
     name: str
     code: str
     english_name: str
@@ -51,6 +45,16 @@ class CategoryData:
     sort_order: int
     groups: dict[str, str]
     items: list[Any]
+
+
+# ---- 导入各分类数据（CardItem 已定义，分类文件可 from . import CardItem）----
+from .animals import ANIMALS, ANIMAL_GROUPS
+from .dinosaurs import DINOSAUR_GROUPS, ITEMS as DINOSAURS
+from .fruits import FRUIT_GROUPS, ITEMS as FRUITS
+from .jobs import JOB_GROUPS, ITEMS as JOBS
+from .plants import PLANT_GROUPS, ITEMS as PLANTS
+from .space import SPACE_GROUPS, ITEMS as SPACE
+from .vehicles import VEHICLE_GROUPS, ITEMS as VEHICLES
 
 
 CATEGORIES: list[CategoryData] = [

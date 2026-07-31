@@ -2,7 +2,8 @@
 
 记录开发过程中遇到的关键问题及解决方案。
 
-> ⚠️ 2026-07-31 模块化重构后：**动物数据源是 `apps/core/data.py`**（Animal dataclass，77 只），
+> ⚠️ 2026-07-31 模块化重构后：**全部条目数据源是 `apps/core/data/` 目录**（`__init__.py` 汇总
+> CATEGORIES + 每分类一个文件：animals.py 77 只 / fruits.py 23 / vehicles / dinosaurs / space / plants / jobs），
 > 不再是 `seed_data.py` 的元组。本文档涉及"数据源/动物数量/文件结构"的旧表述已修正；
 > 历史问题描述（Safari/iPad/音频等）仍有效，作为排错参考。
 
@@ -17,10 +18,10 @@
 ### 图片焦点校准
 
 - `image_utils.py` 用 OpenCV saliency 检测图片视觉重心，但检测的是整只动物的几何中心，不是脸部
-- 所有 `image_position` 值已在 `apps/core/data.py` 的 ANIMALS 列表手动校准，标记 `image_position_checked=True`
+- 所有 `image_position` 值已在 `apps/core/data/` 的 ANIMALS 列表手动校准，标记 `image_position_checked=True`
 - **不要用 `detect_centers --force` 覆盖手调值**
 - 卡片模板中 `centerPos()` 对纵向做 ×0.65 上偏补偿
-- 修改焦点：改 `apps/core/data.py` 中对应动物的 `'XX% YY%'`，然后 `sync_positions`（或 `seed_data --force`）
+- 修改焦点：改 `apps/core/data/` 中对应动物的 `'XX% YY%'`，然后 `sync_positions`（或 `seed_data --force`）
 
 ### 模式栏按钮对齐
 
@@ -87,14 +88,14 @@ position: absolute; top: 10px; opacity: 0.5; pointer-events: none;
 
 ## 数据 & 后端
 
-### 种子数据（apps/core/data.py）
+### 种子数据（apps/core/data/）
 
-- **2026-07-31 重构后**：动物数据统一在 `apps/core/data.py`（`Animal` dataclass，**77 只**），
+- **2026-07-31 重构后**：动物数据统一在 `apps/core/data/`（`Animal` dataclass，**77 只**），
   `seed_data.py` / `seed_sync.py` / `sync_positions.py` / `gen_audio.py` 全部从它读取，不再各自维护
 - 每只 11 字段：`(name, code, english_name, emoji, img_file, audio_file, fact, image_position, image_position_ipad_portrait, image_position_ipad_landscape, group)`
 - `seed_data --force` 覆盖已有数据（清空重建）；生产/Docker 用 `seed_sync`（非破坏增量）
 - `image_position_checked=True` 防止 `detect_centers` 覆盖手调值
-- `check_data` 命令可校验 DB / 媒体 / data.py 三方一致
+- `check_data` 命令可校验 DB / 媒体 / apps/core/data/ 三方一致
 
 ### N+1 查询修复
 
@@ -271,13 +272,13 @@ viewport meta 加 `user-scalable=no`，阻止浏览器默认双击缩放。
 
 ### 动物数据清单（2026-07-23，2026-07-31 更新）
 
-**2026-07-31 重构后**：代码级主数据源是 `apps/core/data.py`（`Animal` dataclass，77 只）。
+**2026-07-31 重构后**：代码级主数据源是 `apps/core/data/`（`Animal` dataclass，77 只）。
 `ANIMALS.md` 是它的**展示文档**（含全部焦点值），改数据时两者需保持一致。
-修改动物内容（增减、科普、焦点）直接编辑 `apps/core/data.py`。
+修改动物内容（增减、科普、焦点）直接编辑 `apps/core/data/`。
 
 **焦点调整工作流**（2026-07-24 优化，2026-07-31 更新）：
 - 所有焦点都是基于中心 `50% 50%` 的相对偏移
-- 修改 `apps/core/data.py` → `python manage.py sync_positions`（只同步焦点）或 `seed_data --force`（全量）
+- 修改 `apps/core/data/` → `python manage.py sync_positions`（只同步焦点）或 `seed_data --force`（全量）
 - 服务不需要重启，刷新前端页面即可
 
 ### iPad / iPhone 双套图片焦点（2026-07-24）
@@ -700,7 +701,7 @@ docker compose exec learning-platform python manage.py shell -c "from apps.core.
 # 推荐运行命令
 cd learning-platform
 .venv/Scripts/python.exe manage.py runserver localhost:8000
-# 改完 data.py 后
+# 改完 apps/core/data/ 后
 .venv/Scripts/python.exe manage.py seed_sync
 # 无需重启，Django dev server 自动重载
 ```
@@ -1016,7 +1017,7 @@ CSS 文件通过 `?v=YYYYMMDDx` 版本号绕过 Safari 强缓存。修改 CSS �
    ```
    `to_dict()` 新增 `"group": self.group or ""`
 
-2. **`apps/core/data.py`** — `Animal` dataclass 含 11 字段，`group` 为第 11 位。77 只动物按组排列，方便维护（2026-07-31 重构：数据从 seed_data.py 元组迁移到 data.py dataclass）
+2. **`apps/core/data/animals.py`** — `Animal`（即共享 `CardItem`）含 11 字段，`group` 为第 11 位。77 只动物按组排列，方便维护（2026-07-31 重构：数据从 seed_data.py 元组迁移到 data.py dataclass，后又拆分为 data/ 多分类目录）
 
 3. **`views.py`** — `category_browse_view` 新增 `group_counts` 统计和 `total` 传递给模板
 

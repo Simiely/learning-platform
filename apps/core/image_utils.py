@@ -9,7 +9,7 @@ IMPORTANT — Image center detection caveat:
     usually in the upper portion. The card template compensates for this
     with an upward bias in its centerPos() helper.
 
-    For hand-tuned positions, see seed_data.py ANIMALS table.
+    For hand-tuned positions, see apps/core/data/animals.py ANIMALS table.
     Do NOT run `detect_centers --force` on seeded data.
 """
 

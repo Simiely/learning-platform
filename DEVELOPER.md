@@ -252,7 +252,7 @@ class Animal:
 | 发音按钮样式丢失 | 页面没加载对应 CSS 模块 | 确认 `.ph-*` 样式在 `layout.css` |
 | 翻卡时音频串音 | `playSequence` 未取消旧序列 | 检查 `sequenceId` 机制 |
 | 首次加载不发音 | 浏览器 autoplay 拦截 | 已加解锁逻辑，用户点屏幕即可 |
-| Docker 部署后异常 | data.py 数据问题 | 跑 `manage.py check_data` 校验三方一致 |
+| Docker 部署后异常 | data/ 数据问题 | 跑 `manage.py check_data` 校验三方一致 |
 | 音频 404 | 磁盘文件名与 DB 不一致 | seed_data 用 `_write_media_file()` 覆写 |
 | CSS 改了不生效 | Safari 强缓存 | 更新模板 `?v=` 版本号 |
 | 练习模式容器塌缩 | quiz.css 缺少全视口样式 | 确认 `.container-quiz` 含 `height: calc(var(--vh)*100-52px)` |

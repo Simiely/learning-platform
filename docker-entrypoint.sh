@@ -31,7 +31,7 @@ fi
 echo "==> [4/8] Syncing seed data (creates new items, updates changed, never deletes)"
 python manage.py seed_sync
 
-echo "==> [5/8] Verifying data consistency (media files + data.py alignment)"
+echo "==> [5/8] Verifying data consistency (media files + data/ alignment)"
 python manage.py check_data
 
 echo "==> [6/8] Syncing image positions from seed_data"
