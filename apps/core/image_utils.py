@@ -164,9 +164,3 @@ def emoji_color(emoji: str, darken: float = 0.7) -> str:
     fallback = hash_tile_color(emoji)
     emoji_color._cache[cache_key] = fallback
     return fallback
-
-
-# 兼容别名：旧代码可能按下划线名导入（如 detect_centers 命令）
-_detect_image_center = detect_image_center
-_emoji_color = emoji_color
-_hash_tile_color = hash_tile_color

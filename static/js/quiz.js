@@ -26,7 +26,7 @@ function quizApp(cfg) {
             this.selectedId = null;
             this.answered = false;
             this.isCorrect = false;
-            var r = await fetch(cfg.questionUrl + '?type=image_to_name');
+            var r = await fetch(cfg.questionUrl);
             this.currentQuestion = await r.json();
             this.currentQuestion.image_position = iPadDetect.getImagePos(this.currentQuestion);
         },
@@ -96,8 +96,7 @@ function quizApp(cfg) {
                 },
                 body: JSON.stringify({
                     total: QUIZ_SIZE,
-                    correct: this.score,
-                    quiz_type: 'image_to_name'
+                    correct: this.score
                 })
             });
         }

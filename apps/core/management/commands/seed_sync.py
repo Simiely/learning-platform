@@ -79,9 +79,9 @@ class Command(BaseCommand):
                     category=cat, code=a.code, defaults=defaults
                 )
 
-                # 写媒体文件：新建条目，或已有条目缺音频时（如先建条目后补音频/图片）
-                # 动物等已有完整媒体的条目不会被覆盖
-                if is_new or not item.audio:
+                # 写媒体文件：新建条目，或已有条目缺图/缺音频时补齐（动物等已有完整媒体的条目不覆盖）
+                # 图片与音频分开判断，避免"有音频但缺图"的条目图片永不补齐
+                if is_new or not item.image:
                     if a.img_file:
                         src = os.path.join(MEDIA_ROOT, "images", a.img_file)
                         if os.path.exists(src):
@@ -89,6 +89,7 @@ class Command(BaseCommand):
                                 item.image = _write_media_file(os.path.join("images", a.img_file), f.read())
                             item.save(update_fields=["image"])
 
+                if is_new or not item.audio:
                     if a.audio_file:
                         for sub, field in (
                             ("audio", "audio"),

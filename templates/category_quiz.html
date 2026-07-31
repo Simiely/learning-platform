@@ -44,7 +44,8 @@
                     <img :src="currentQuestion.image_url" x-show="currentQuestion.image_url"
                          style="width:100%;height:100%;object-fit:cover;"
                          :style="{objectPosition: currentQuestion.image_position}">
-                    <span class="qi-emoji" x-show="!currentQuestion.image_url">{{ category.icon }}</span>
+                    <span class="qi-emoji" x-show="!currentQuestion.image_url"
+                          x-text="currentQuestion.emoji || '{{ category.icon }}'"></span>
                 </div>
 
                 <div class="quiz-options">

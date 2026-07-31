@@ -106,6 +106,16 @@ class QuizSubmitTests(TestCase):
         )
         self.assertEqual(resp.status_code, 400)
 
+    def test_submit_rejects_non_dict_body(self):
+        # 非 dict JSON body 应返回 400，而不是 500
+        for payload in ([1, 2, 3], "abc", None, 123, "null"):
+            resp = self.client.post(
+                "/api/quiz/animals/submit/",
+                data=json.dumps(payload),
+                content_type="application/json",
+            )
+            self.assertEqual(resp.status_code, 400, f"payload={payload!r} 应 400")
+
 
 class MultiCategoryViewTests(TestCase):
     """全部 7 个分类的视图/API 回归测试（多分类扩展保护）。"""

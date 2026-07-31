@@ -57,7 +57,6 @@ def category_browse_view(request: Any, slug: str) -> Any:
             "items": items,
             "items_json": items_json,
             "group_info": group_info,  # [(key, "🏠 家里和农场", 13), ...]
-            "group_counts": group_counts,
             "total": len(items),
             "total_emoji": _to_emoji_digits(len(items)),
         },
@@ -79,11 +78,6 @@ def category_cards_view(request: Any, slug: str) -> Any:
         },
     )
 
-def item_detail_api(request: Any, item_id: int) -> JsonResponse:
-    item = get_object_or_404(Item, id=item_id)
-    mark_item_viewed(request.user, item)
-    return JsonResponse(item.to_dict())
-
 def reset_visited(request: Any, slug: str) -> JsonResponse:
     """Reset visited state for all items in a category.
 
@@ -101,6 +95,7 @@ def mark_viewed(request: Any, item_id: int) -> JsonResponse:
 # ---- Quiz 常量 ----
 QUIZ_MIN_ITEMS = 4      # 至少需要多少个条目才能出题
 QUIZ_N_DISTRACTORS = 3  # 每个题目干扰项数量（共 4 个选项）
+QUIZ_SIZE = 10          # 每组练习的题目数量（前端 quiz.js 也定义，需保持一致）
 
 def category_quiz_view(request: Any, slug: str) -> Any:
     category = get_object_or_404(Category, slug=slug)
@@ -113,9 +108,6 @@ def category_quiz_view(request: Any, slug: str) -> Any:
             {"category": category, "error": "Need at least 4 items to create a quiz."},
         )
 
-    quiz_type = request.GET.get("type", request.session.get("quiz_type", "image_to_name"))
-    request.session["quiz_type"] = quiz_type
-
     # Store previous quiz's used IDs; clear current quiz tracking
     session_key = f"quiz_{slug}"
     current_used = request.session.get(session_key, [])
@@ -127,7 +119,7 @@ def category_quiz_view(request: Any, slug: str) -> Any:
     return render(
         request,
         "category_quiz.html",
-        {"category": category, "quiz_type": quiz_type, "item_count": len(items)},
+        {"category": category, "item_count": len(items)},
     )
 
 def quiz_question_api(request: Any, slug: str) -> JsonResponse:
@@ -137,10 +129,16 @@ def quiz_question_api(request: Any, slug: str) -> JsonResponse:
     if len(items) < QUIZ_MIN_ITEMS:
         return JsonResponse({"error": "Not enough items"}, status=400)
 
-    quiz_type = request.GET.get("type", "image_to_name")
     session_key = f"quiz_{slug}"
     used_ids = set(request.session.get(session_key, []))
     prev_ids = set(request.session.get(f"{session_key}_prev", []))
+
+    # 服务端题目数上限：本轮已用满 QUIZ_SIZE 则滚动到下一轮（防御 API 直连绕过前端）
+    if len(used_ids) >= QUIZ_SIZE:
+        request.session[f"{session_key}_prev"] = list(used_ids)
+        used_ids = set()
+        request.session[session_key] = []
+        request.session.modified = True
 
     # Exclude already-used (current session) and previous session IDs
     excluded = used_ids | prev_ids
@@ -177,7 +175,6 @@ def quiz_question_api(request: Any, slug: str) -> JsonResponse:
         "emoji": correct.emoji,
         "audio_zh": correct.audio.url if correct.audio else "",
         "audio_en": correct.audio_en.url if correct.audio_en else "",
-        "quiz_type": quiz_type,
         "options": [
             {
                 "id": i.id,
@@ -195,10 +192,12 @@ def quiz_submit_batch(request: Any, slug: str) -> JsonResponse:
     category = get_object_or_404(Category, slug=slug)
     try:
         body = json.loads(request.body)
+        # 非 dict 的 JSON body（数组/字符串/数字/null）直接拒绝，避免 500
+        if not isinstance(body, dict):
+            return JsonResponse({"error": "Invalid data"}, status=400)
         total = body.get("total", 0)
         correct = body.get("correct", 0)
-        quiz_type = body.get("quiz_type", "image_to_name")
-    except (json.JSONDecodeError, KeyError):
+    except (json.JSONDecodeError, AttributeError, TypeError):
         return JsonResponse({"error": "Invalid data"}, status=400)
 
     if not isinstance(total, int) or not isinstance(correct, int):
@@ -212,7 +211,7 @@ def quiz_submit_batch(request: Any, slug: str) -> JsonResponse:
             category=category,
             total=total,
             correct=correct,
-            quiz_type=quiz_type,
+            quiz_type="image_to_name",
         )
 
     return JsonResponse({"status": "ok"})
