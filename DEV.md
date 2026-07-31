@@ -1036,6 +1036,48 @@ CSS 文件通过 `?v=YYYYMMDDx` 版本号绕过 Safari 强缓存。修改 CSS �
 
 5. **`browse.css`** — 新增胶囊按钮样式（`.group-tabs` 用 flex-wrap 自适应换行，`.group-tab` 选中态用 `--primary` 粉色）
 
+---
+
+## 2026-07-31 大版本 · 关键踩坑与经验
+
+### 1. gen_audio.py 绝不能无参数全量跑
+- 现象：全量跑重新生成所有分类音频，中途 edge-tts 网络抖动会留下 **0 字节损坏文件**（cat.mp3 / whale.mp3 实际被覆盖坏）
+- 规则：永远 `python gen_audio.py --category <slug>` 限定分类；修复损坏文件用
+  `gen_audio.py --category <slug> <base>` 只补指定条目
+- `seed_sync` 现在支持**补写缺失媒体**（条目已存在但 audio/image 为空时补齐，已有媒体不受影响）
+
+### 2. 跨分类 audio_file 基名必须全局唯一
+- 事故：vehicles 和 space 的「火箭」都用 `rocket.mp3`，后生成的覆盖先生成的 → 交通版火箭播太空文案
+- 规则：不同分类条目的 `audio_file` 基名不得相同（测试 `test_audio_basenames_globally_unique` 会拦截）
+
+### 3. 宿主命令执行环境会间歇性故障（WorkBuddy 特性）
+- 现象：Bash / PowerShell / 子代理全部无输出（连 `echo` 都空），几分钟到几十分钟后自行恢复
+- 对策：① 文件修改用 Read/Write/Edit 照常做，命令部分等恢复；② 用户重启 WorkBuddy 立即可恢复；
+  ③ 验证文件是否存在用 Read 探测（Glob 对 media/ 大目录索引不完整，会漏报）
+
+### 4. Quiz 出题去重的物理限制
+- 10 题 × 4 选项 = 40 个「出现位置」，最少分类（太空 15 条）撑不满 → **「选项全不重复」不可能**
+- 教训：第一版用 seen 全去重，实测 15 条分类第 5 题就耗尽重置、正确答案反而重复
+- 正解（时间正向）：正确答案互不重复 + 已出答案不再混入后续选项；干扰项允许复用但永与答案冲突
+- 测试 `QuizNoRepeatTests` 3 个用例锁死该行为
+
+### 5. 模板 slice 切 emoji 会切坏 ZWJ 组合
+- 现象：职业分组标签（👨⚕️/👨🚒/👩🏫 等 ZWJ emoji）用 `{{ label|slice:":1" }}` 只剩半个 emoji；
+  iPad 宽屏下标签 emoji 重复显示 2 个（slice 的 + label 里的）
+- 正解：视图层 `label.partition(" ")` 拆成 icon + 纯文字，模板按钮统一 gt-count=icon / gt-label=文字
+- 规则：`Category.groups` 的 label 固定 `"emoji 文字"` 格式
+
+### 6. 首页查询优化
+- `prefetch_related("items")` + 模板 `cat.item_count`（内部 count()）→ 每次发新 COUNT（7 分类 8 次查询）
+- 正解：`Category.objects.annotate(item_count=Count("items"))` → 1 次查询，模板零改动
+- 注意：annotate 字段名与模型方法同名时，实例属性优先，模板 `cat.item_count` 渲染 int
+
+### 7. 其他
+- `cp -r data/ 目标已存在的 data/` 会产生嵌套 `data/data/`；用 `cp data/*.py 目标目录/`
+- 工作区副本（D:\workbuddy\...）必须与真实仓库（C:\Users\2504\Documents\learning-platform）同步
+- 提交前跑：`manage.py check` / `manage.py test apps.core` / `manage.py check_data`（30+ 测试兜底）
+
+
 ### 迁移步骤
 
 ```bash

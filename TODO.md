@@ -20,13 +20,13 @@
 代码已上库，但 `db.sqlite3` 故意不入库（见 `.gitignore`）。部署时靠种子脚本确定性重建数据：
 ```bash
 pip install -r requirements.txt
-python manage.py migrate            # 应用迁移 0012，建立 Item.group 字段
+python manage.py migrate            # 应用迁移 0013，建立 Category.groups / Item.group 放开
 python manage.py seed_sync          # 非破坏性同步（推荐，部署链路用这个）
 python manage.py seed_data --force  # 或全量重建（会清空旧数据，仅首启/测试用）
 python manage.py check_data         # 校验 DB / 媒体 / apps/core/data/ 三方一致
 python manage.py collectstatic      # 用 gunicorn 生产部署时需要
 ```
-执行后状态 = 本地当前状态（77 只、4 分组、每张图 + 3 段语音齐全）。
+执行后状态 = 本地当前状态（**7 分类 183 条**、每分类分组齐全、动物有图 + 全平台三语音频）。
 > Docker 部署链路（docker-entrypoint.sh）已自动执行 `seed_sync` + `check_data`，无需手动。
 
 ### B. ALLOWED_HOSTS 补域名 ⚠️
@@ -71,6 +71,21 @@ image_position_ipad_landscape），再跑 `python manage.py sync_positions`（�
    前端自动显示 emoji，后续补真实图只需填文件名 + 重新 seed_sync。
 9. **gen_audio 必须 --category**（2026-07-31 定）：生成音频只跑
    `python gen_audio.py --category <slug>`；无参数全量会覆盖已有音频且中途失败留 0 字节损坏文件。
+10. **Quiz 出题去重（时间正向）**（2026-07-31 定）：一轮 10 题正确答案互不重复（correct 池排除
+    本轮已出答案 + 上轮答案）；已出答案不再混入后续题选项（干扰项池排除 used + prev）。
+    干扰项允许跨题复用（10 题 × 4 选项 = 40 位置 > 最少分类 15 条的物理限制）。
+11. **分组标签 icon/text 拆分**（2026-07-31 定）：`Category.groups` 的 label 格式为 `"emoji 文字"`，
+    视图用 `label.partition(" ")` 拆成 icon + 文字（模板 gt-count=icon / gt-label=文字）。
+    不要在模板里 `slice:":1"` 切 emoji（会切坏 ZWJ 组合 emoji，如 👨⚕️）。
+12. **首页查询用 annotate**（2026-07-31 定）：`Category.objects.annotate(item_count=Count("items"))`
+    在 SQL 层一次算完（8 次 → 1 次查询）；模板直接渲染 `cat.item_count`。
+
+## 二五、最近完成（2026-07-31 大版本）
+- ✅ **7 分类 183 条上线**：动物 77 / 果蔬 23 / 交通工具 20 / 恐龙 16 / 太空 15 / 花卉植物 16 / 职业 16
+- ✅ **模块化架构**：`data/` 目录多分类（CardItem 统一 11 字段）、命令/视图/模板/JS 全动态、30+ 测试
+- ✅ **代码审查与修复**：rocket 音频冲突、quiz_submit 500、quiz 题目去重、iPad 分组标签 emoji 重复、
+  seed_sync 媒体回填解绑、死代码清理（quiz_type / item_detail_api / 冗余属性 / 兼容别名）
+- ✅ **README / DEVELOPER / ADD_ANIMALS_GUIDE / DEV / TODO 全部与最新代码同步**
 
 ## 三、需要你（用户）提供的密钥 / 凭据
 
