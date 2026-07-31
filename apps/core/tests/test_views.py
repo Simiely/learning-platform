@@ -54,25 +54,36 @@ class BrowseViewTests(TestCase):
         for a in ANIMALS[:10]:
             self.assertIn(a.name, html)
 
-    def test_browse_sort_en_orders_by_english(self):
-        # ?sort=en 按英文名排序，英文模式初始开启字母分块（lettersEnabled: true）
-        resp = self.client.get("/category/animals/?sort=en")
+    def test_browse_letters_en_orders_by_english(self):
+        # ?letters=en 按英文名排序 + 初始开启英文区块（lettersEnabled: true、🔤 选中）
+        resp = self.client.get("/category/animals/?letters=en")
         self.assertEqual(resp.status_code, 200)
         html = resp.content.decode()
-        self.assertIn("lettersEnabled: true", html, "英文模式应初始开启字母分块")
-        self.assertIn("🀄", html, "英文模式应有返回拼音的 🀄 按钮")
+        self.assertIn("lettersEnabled: true", html, "英文区块应初始开启")
+        self.assertIn("toggleLetterMode('en')", html)
+        self.assertIn("letter-toggle active", html, "🔤 应为选中状态")
         m = re.search(r"items: (\[.*?\]),\s*lettersEnabled", html, re.S)
         self.assertTrue(m, "应能提取 items_json")
         items = json.loads(m.group(1))
         names = [it["english_name"] for it in items]
         self.assertEqual(
             names, sorted(names, key=lambda s: (s or "").lower()),
-            "英文模式应按英文名排序",
+            "英文区块应按英文名排序",
         )
 
+    def test_browse_default_has_no_letter_dividers(self):
+        # 默认（无参数）：拼音排序、无字母区块、两按钮都未选中
+        resp = self.client.get("/category/animals/")
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        self.assertIn("lettersEnabled: false", html, "默认不应开启区块")
+        self.assertNotIn("b-letter-divider", html, "默认不应渲染字母分块")
+        self.assertIn("toggleLetterMode('zh')", html)
+        self.assertIn("toggleLetterMode('en')", html)
+
     def test_letter_dividers_grouped_by_initial(self):
-        # 同首字母的条目只渲染一个字母分块（区域块正确合并，不逐条重复）
-        for url in ("/category/animals/", "/category/animals/?sort=en"):
+        # 区块模式下，同首字母的条目只渲染一个字母分块（区域块正确合并，不逐条重复）
+        for url in ("/category/animals/?letters=zh", "/category/animals/?letters=en"):
             resp = self.client.get(url)
             html = resp.content.decode()
             letters = re.findall(r'ld-badge">([A-Z#])</span>', html)

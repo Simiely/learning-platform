@@ -58,7 +58,7 @@
             fetch(cfg.markViewedUrl + id + '/', { method: 'POST', headers: { 'X-CSRFToken': csrf } }).catch(function () {});
         };
 
-        // ---- Letter divider toggle (拼音默认关；英文排序模式初始开启) ----
+        // ---- Letter divider (区块模式：🀄拼音 / 🔤英文，互斥选中；默认关闭) ----
         var lettersEnabled = cfg.lettersEnabled === true;
 
         function updateLetterDividers() {
@@ -85,26 +85,17 @@
             });
         }
 
-        global.toggleLetters = function (btn) {
-            lettersEnabled = !lettersEnabled;
-            btn.classList.toggle('active', lettersEnabled);
-            updateLetterDividers();
-        };
-
-        // 排序模式切换：mode = 'zh'（拼音）/ 'en'（英文首字母）
-        // 不同模式点击 → 重新加载切换排序（英文模式加载后自动显示字母分块）；
-        // 已是当前模式 → 当作字母分块开关
-        global.toggleSort = function (btn, mode) {
-            var curEn = window.location.search.indexOf('sort=en') !== -1;
-            if (mode === 'en' && !curEn) {
-                window.location.href = window.location.pathname + '?sort=en';
-                return;
+        // 区块模式切换（互斥）：mode = 'zh'（拼音）/ 'en'（英文）
+        // 已选中该模式 → 点击取消（回默认排序，无区块）；未选中 → 选中并取消另一个
+        global.toggleLetterMode = function (mode) {
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('letters') === mode) {
+                params.delete('letters');
+            } else {
+                params.set('letters', mode);
             }
-            if (mode === 'zh' && curEn) {
-                window.location.href = window.location.pathname;
-                return;
-            }
-            toggleLetters(btn);
+            var qs = params.toString();
+            window.location.href = window.location.pathname + (qs ? '?' + qs : '');
         };
 
         // ---- Group filter ----
@@ -125,7 +116,7 @@
             updateLetterDividers();
         };
 
-        // Init: letter dividers hidden by default
+        // Init: letter dividers per letters mode
         updateLetterDividers();
     };
 })(window);

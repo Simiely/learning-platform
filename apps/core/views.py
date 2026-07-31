@@ -32,9 +32,13 @@ def index_view(request: Any) -> Any:
 def category_browse_view(request: Any, slug: str) -> Any:
     category = get_object_or_404(Category, slug=slug)
 
-    # 排序模式：默认拼音；?sort=en 按英文首字母排序（点 🔤 按钮切换）
-    sort_en = request.GET.get("sort") == "en"
-    if sort_en:
+    # 区块模式（互斥双选按钮）：?letters=zh 拼音区块 / ?letters=en 英文区块 / 无 = 默认拼音排序无区块
+    letters = request.GET.get("letters")
+    letters_en = letters == "en"
+    letters_zh = letters == "zh"
+    show_letters = letters_zh or letters_en
+
+    if letters_en:
         items = sorted(
             category.items.all(),
             key=lambda it: (it.english_name or "").lower(),
@@ -43,13 +47,13 @@ def category_browse_view(request: Any, slug: str) -> Any:
         items = sort_by_pinyin(category.items.all())
 
     # Attach colour based on emoji for each item + 字母分隔用的首字母
-    # initial 按排序模式统一计算（模板 ifchanged 只用这一个变量，避免条件表达式语法问题）
+    # initial 按区块模式统一计算（模板 ifchanged 只用这一个变量，避免条件表达式语法问题）
     for item in items:
         item.color = emoji_color(item.emoji or item.name)
         item.pinyin_initial = pinyin_initial(item.name)
         en = (item.english_name or "").strip()
         item.en_initial = en[0].upper() if en and en[0].isalpha() else "#"
-        item.initial = item.en_initial if sort_en else item.pinyin_initial
+        item.initial = item.en_initial if letters_en else item.pinyin_initial
 
     items_json = json.dumps([it.to_dict() for it in items])
 
@@ -75,7 +79,9 @@ def category_browse_view(request: Any, slug: str) -> Any:
             "items": items,
             "items_json": items_json,
             "group_info": group_info,  # [(key, "🏠", "家里和农场", 13), ...]
-            "sort_en": sort_en,
+            "letters_zh": letters_zh,
+            "letters_en": letters_en,
+            "show_letters": show_letters,
             "total": len(items),
             "total_emoji": _to_emoji_digits(len(items)),
         },
