@@ -30,6 +30,7 @@
     <button class="group-tab" data-group="wild" onclick="filterGroup(this, 'wild')">🌍<span class="gt-label">野生动物 ({{ group_counts.wild }})</span></button>
     <button class="group-tab" data-group="ocean" onclick="filterGroup(this, 'ocean')">🌊<span class="gt-label">海洋动物 ({{ group_counts.ocean }})</span></button>
     <button class="group-tab" data-group="reptile" onclick="filterGroup(this, 'reptile')">🦎<span class="gt-label">爬虫和昆虫 ({{ group_counts.reptile }})</span></button>
+    <button class="group-tab letter-toggle" id="letter-toggle" onclick="toggleLetters(this)" title="字母分隔">🔤</button>
 </div>
 
 <div class="browse-grid" id="browse-grid-{{ category.slug }}">
@@ -114,6 +115,40 @@
         fetch('/api/mark-viewed/' + id + '/', {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}}).catch(function(){});
     };
 
+    // ---- 字母分隔开关（默认关闭）----
+    var lettersEnabled = false;
+
+    function updateLetterDividers() {
+        var grid = document.getElementById('browse-grid-' + slug);
+        if (!lettersEnabled) {
+            grid.querySelectorAll('.b-letter-divider').forEach(function(dv) {
+                dv.style.display = 'none';
+            });
+            return;
+        }
+        // 字母分隔块：只有当它后面还有可见的瓷砖时才显示
+        var visibleLetters = new Set();
+        grid.querySelectorAll('.b-tile').forEach(function(tile) {
+            if (tile.style.display !== 'none') {
+                // 找到它前面最近的一个字母块
+                var prev = tile.previousElementSibling;
+                while (prev && !prev.classList.contains('b-letter-divider')) {
+                    prev = prev.previousElementSibling;
+                }
+                if (prev) visibleLetters.add(prev.getAttribute('data-letter'));
+            }
+        });
+        grid.querySelectorAll('.b-letter-divider').forEach(function(dv) {
+            dv.style.display = visibleLetters.has(dv.getAttribute('data-letter')) ? '' : 'none';
+        });
+    }
+
+    window.toggleLetters = function(btn) {
+        lettersEnabled = !lettersEnabled;
+        btn.classList.toggle('active', lettersEnabled);
+        updateLetterDividers();
+    };
+
     // ---- 分组过滤 ----
     window.filterGroup = function(btn, group) {
         // 切换 active 样式（选中按钮会显示文字）
@@ -132,22 +167,12 @@
             }
         });
 
-        // 字母分隔块：只有当它后面还有可见的瓷砖时才显示
-        var visibleLetters = new Set();
-        grid.querySelectorAll('.b-tile').forEach(function(tile) {
-            if (tile.style.display !== 'none') {
-                // 找到它前面最近的一个字母块
-                var prev = tile.previousElementSibling;
-                while (prev && !prev.classList.contains('b-letter-divider')) {
-                    prev = prev.previousElementSibling;
-                }
-                if (prev) visibleLetters.add(prev.getAttribute('data-letter'));
-            }
-        });
-        grid.querySelectorAll('.b-letter-divider').forEach(function(dv) {
-            dv.style.display = visibleLetters.has(dv.getAttribute('data-letter')) ? '' : 'none';
-        });
+        // 字母分隔块联动
+        updateLetterDividers();
     };
+
+    // 初始化：字母分隔默认关闭
+    updateLetterDividers();
 })();
 </script>
 {% endblock %}

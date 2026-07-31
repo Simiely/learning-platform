@@ -49,6 +49,17 @@
     border-color: var(--primary);
 }
 
+/* 字母分隔开关按钮 */
+.group-tab.letter-toggle {
+    padding: 8px 12px;
+    font-size: 14px;
+}
+.group-tab.letter-toggle.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
 /* ---- 浏览网格 ---- */
 .browse-grid {
     display: grid;
