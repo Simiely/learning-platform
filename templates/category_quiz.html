@@ -5,6 +5,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/quiz.css' %}?v=20260726b">
 <script src="{% static 'js/confetti.js' %}"></script>
+<script src="{% static 'js/quiz.js' %}?v=20260731a"></script>
 {% endblock %}
 
 {% block content %}
@@ -23,7 +24,14 @@
     <p class="empty-hint">{{ error }}</p>
 {% else %}
 <div class="quiz-page"
-     x-data="quizApp('{{ category.slug }}', '{{ csrf_token }}')"
+     x-data="quizApp({
+        categorySlug: '{{ category.slug }}',
+        csrfToken: '{{ csrf_token }}',
+        questionUrl: '{% url "quiz_question_api" category.slug %}',
+        submitUrl: '{% url "quiz_submit_batch" category.slug %}',
+        quizUrl: '{% url "category_quiz" category.slug %}',
+        browseUrl: '{% url "category_browse" category.slug %}'
+     })"
      x-init="nextQuestion()">
 
     <template x-if="state==='playing'">
@@ -81,115 +89,13 @@
                 <span x-show="score<3" style="font-size:28px;">别灰心，再试试</span>
             </div>
             <div style="display:flex;gap:10px;justify-content:center;margin-top:auto;padding-top:24px;">
-                <a :href="'/category/'+categorySlug+'/quiz/'" class="btn btn-primary" style="width:140px;">再做一次</a>
-                <a :href="'/category/'+categorySlug+'/'" class="btn btn-outline" style="width:140px;">返回浏览</a>
+                <a :href="quizUrl" class="btn btn-primary" style="width:140px;">再做一次</a>
+                <a :href="browseUrl" class="btn btn-outline" style="width:140px;">返回浏览</a>
             </div>
         </div>
     </template>
 </div>
 
 <canvas id="confetti-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:999;display:none;"></canvas>
-
-<script>
-function quizApp(cat, token) {
-    return {
-        categorySlug: cat,
-        state: 'playing',
-        current: 0,
-        score: 0,
-        currentQuestion: null,
-        selectedId: null,
-        answered: false,
-        isCorrect: false,
-
-        async nextQuestion() {
-            if (this.current >= 10) {
-                this.state = 'done';
-                this.submitResult();
-                return;
-            }
-            this.selectedId = null;
-            this.answered = false;
-            this.isCorrect = false;
-            var r = await fetch('/api/quiz/' + this.categorySlug + '/question/?type=image_to_name');
-            this.currentQuestion = await r.json();
-            this.currentQuestion.image_position = iPadDetect.getImagePos(this.currentQuestion);
-        },
-
-        selectAnswer(id) {
-            if (this.answered) return;
-            this.selectedId = id;
-            this.answered = true;
-            this.isCorrect = (id === this.currentQuestion.correct_id);
-            if (this.isCorrect) {
-                this.score++;
-                Confetti.launch(document.querySelector('.quiz-img'));
-            } else {
-                Confetti.playWrongSound();
-            }
-            this.current++;
-            this.playQuizAudio(this.currentQuestion);
-        },
-
-        playQuizAudio(q) {
-            var audio = document.getElementById('quiz-audio');
-            if (!audio || !q) return;
-
-            var self = this;
-            audio.pause();
-            if (this._quizSeqId !== undefined) this._quizSeqId++;
-            else this._quizSeqId = 0;
-            var mySeqId = this._quizSeqId;
-
-            function play(src) {
-                if (!src) return;
-                if (self._quizSeqId !== mySeqId) return;
-                audio.src = src;
-                audio.load();
-                audio.play().catch(function(e) { console.log('Audio error:', e); });
-            }
-
-            if (!q.audio_zh) {
-                if (q.audio_en) play(q.audio_en);
-                return;
-            }
-            play(q.audio_zh);
-
-            var probe = new Audio();
-            var done = false;
-            probe.src = q.audio_zh;
-            probe.preload = 'metadata';
-            function onReady() {
-                if (done || self._quizSeqId !== mySeqId) return;
-                done = true;
-                var duration = probe.duration || 2;
-                setTimeout(function() { play(q.audio_en); }, duration * 1000 + 500);
-                probe.src = '';
-            }
-            probe.addEventListener('loadedmetadata', onReady);
-            setTimeout(function() {
-                if (!done && self._quizSeqId === mySeqId) onReady();
-            }, 2000);
-        },
-
-        async submitResult() {
-            await fetch('/api/quiz/' + this.categorySlug + '/submit/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': token
-                },
-                body: JSON.stringify({
-                    total: 10,
-                    correct: this.score,
-                    quiz_type: 'image_to_name'
-                })
-            });
-        }
-    };
-}
-
-document.querySelector('main.container').classList.add('container-quiz');
-</script>
 {% endif %}
 {% endblock %}

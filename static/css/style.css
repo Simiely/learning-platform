@@ -3,6 +3,11 @@
    Design tokens from ui-mockup.html
    =================================================== */
 
+   DEPRECATED (2026-07-31): 该单文件样式已被模块化 CSS 取代
+   （theme.css / layout.css / buttons.css / utils.css / 各页面 css）。
+   当前没有任何模板加载本文件，仅保留作重构前后对比参考，
+   确认样式无遗漏后删除。
+
 :root {
     --bg: #f5f0e8;
     --card: #ffffff;

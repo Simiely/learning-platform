@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="{% static 'css/zoom.css' %}?v=20260726b">
 <script src="{% static 'js/audio-player.js' %}"></script>
 <script src="{% static 'js/image-zoom.js' %}"></script>
+<script src="{% static 'js/browse.js' %}?v=20260731a"></script>
 {% endblock %}
 
 {% block content %}
@@ -63,116 +64,12 @@
 {% include "browse_popup.html" %}
 
 <script>
-(function() {
-    var slug = '{{ category.slug }}';
-    var storageKey = 'lc-visited-' + slug;
-    var browseItems = {{ items_json|safe }};
-
-    // Load visited from localStorage (wrapped for private browsing mode)
-    var visited = new Set();
-    try { visited = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]')); } catch(e) {}
-
-    // Apply visited state to tiles
-    function applyVisited() {
-        document.querySelectorAll('#browse-grid-' + slug + ' .b-tile').forEach(function(t) {
-            var id = parseInt(t.getAttribute('data-item-id'));
-            if (visited.has(id)) {
-                t.classList.add('visited');
-                t.querySelector('.bt-flag').style.display = 'flex';
-            } else {
-                t.classList.remove('visited');
-                t.querySelector('.bt-flag').style.display = 'none';
-            }
-        });
-    }
-
-    function saveVisited() {
-        try { localStorage.setItem(storageKey, JSON.stringify([...visited])); } catch(e) {}
-    }
-
-    applyVisited();
-
-    // Reset function
-    window.resetVisited = function(s) {
-        if (s !== slug) return;
-        visited.clear();
-        try { localStorage.removeItem(storageKey); } catch(e) {}
-        applyVisited();
-        fetch('/api/reset-visited/' + s + '/', {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}}).catch(function(){});
-    };
-
-    window.openBrowsePopup = function(tile) {
-        var id = parseInt(tile.getAttribute('data-item-id'));
-        visited.add(id);
-        saveVisited();
-        applyVisited();
-        // Find index in browseItems array
-        var idx = 0;
-        for (var i = 0; i < browseItems.length; i++) {
-            if (browseItems[i].id === id) { idx = i; break; }
-        }
-        showPopup(browseItems, idx);
-        fetch('/api/mark-viewed/' + id + '/', {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}}).catch(function(){});
-    };
-
-    // ---- 字母分隔开关（默认关闭）----
-    var lettersEnabled = false;
-
-    function updateLetterDividers() {
-        var grid = document.getElementById('browse-grid-' + slug);
-        if (!lettersEnabled) {
-            grid.querySelectorAll('.b-letter-divider').forEach(function(dv) {
-                dv.style.display = 'none';
-            });
-            return;
-        }
-        // 字母分隔块：只有当它后面还有可见的瓷砖时才显示
-        var visibleLetters = new Set();
-        grid.querySelectorAll('.b-tile').forEach(function(tile) {
-            if (tile.style.display !== 'none') {
-                // 找到它前面最近的一个字母块
-                var prev = tile.previousElementSibling;
-                while (prev && !prev.classList.contains('b-letter-divider')) {
-                    prev = prev.previousElementSibling;
-                }
-                if (prev) visibleLetters.add(prev.getAttribute('data-letter'));
-            }
-        });
-        grid.querySelectorAll('.b-letter-divider').forEach(function(dv) {
-            dv.style.display = visibleLetters.has(dv.getAttribute('data-letter')) ? '' : 'none';
-        });
-    }
-
-    window.toggleLetters = function(btn) {
-        lettersEnabled = !lettersEnabled;
-        btn.classList.toggle('active', lettersEnabled);
-        updateLetterDividers();
-    };
-
-    // ---- 分组过滤 ----
-    window.filterGroup = function(btn, group) {
-        // 切换 active 样式（选中按钮会显示文字）
-        document.querySelectorAll('#group-tabs-' + slug + ' .group-tab').forEach(function(t) {
-            t.classList.remove('active');
-        });
-        btn.classList.add('active');
-
-        // 显示/隐藏瓷砖
-        var grid = document.getElementById('browse-grid-' + slug);
-        grid.querySelectorAll('.b-tile').forEach(function(tile) {
-            if (group === 'all' || tile.getAttribute('data-group') === group) {
-                tile.style.display = '';
-            } else {
-                tile.style.display = 'none';
-            }
-        });
-
-        // 字母分隔块联动
-        updateLetterDividers();
-    };
-
-    // 初始化：字母分隔默认关闭
-    updateLetterDividers();
-})();
+browseApp({
+    slug: '{{ category.slug }}',
+    csrfToken: '{{ csrf_token }}',
+    items: {{ items_json|safe }},
+    markViewedUrl: '{% url "mark_viewed" 0 %}'.replace(/0\/$/, ''),
+    resetUrl: '{% url "reset_visited" "x" %}'.replace(/x\/$/, '')
+});
 </script>
 {% endblock %}
