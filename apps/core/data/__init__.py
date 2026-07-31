@@ -13,7 +13,12 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .animals import ANIMALS, ANIMAL_GROUPS
+from .dinosaurs import DINOSAUR_GROUPS, ITEMS as DINOSAURS
 from .fruits import FRUIT_GROUPS, ITEMS as FRUITS
+from .jobs import JOB_GROUPS, ITEMS as JOBS
+from .plants import PLANT_GROUPS, ITEMS as PLANTS
+from .space import SPACE_GROUPS, ITEMS as SPACE
+from .vehicles import VEHICLE_GROUPS, ITEMS as VEHICLES
 
 
 @dataclass(frozen=True)
@@ -66,6 +71,51 @@ CATEGORIES: list[CategoryData] = [
         sort_order=2,
         groups=FRUIT_GROUPS,
         items=FRUITS,
+    ),
+    CategoryData(
+        slug="vehicles",
+        name="交通工具",
+        icon="🚗",
+        description="认识路上的、水里游的和天上飞的交通工具",
+        sort_order=3,
+        groups=VEHICLE_GROUPS,
+        items=VEHICLES,
+    ),
+    CategoryData(
+        slug="dinosaurs",
+        name="恐龙",
+        icon="🦖",
+        description="认识远古时代的恐龙",
+        sort_order=4,
+        groups=DINOSAUR_GROUPS,
+        items=DINOSAURS,
+    ),
+    CategoryData(
+        slug="space",
+        name="太空",
+        icon="🚀",
+        description="认识行星、恒星和航天器",
+        sort_order=5,
+        groups=SPACE_GROUPS,
+        items=SPACE,
+    ),
+    CategoryData(
+        slug="plants",
+        name="花卉植物",
+        icon="🌹",
+        description="认识美丽的花卉和植物",
+        sort_order=6,
+        groups=PLANT_GROUPS,
+        items=PLANTS,
+    ),
+    CategoryData(
+        slug="jobs",
+        name="职业",
+        icon="👨‍🚒",
+        description="认识各种各样的职业",
+        sort_order=7,
+        groups=JOB_GROUPS,
+        items=JOBS,
     ),
 ]
 
