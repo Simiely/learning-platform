@@ -58,8 +58,8 @@
             fetch(cfg.markViewedUrl + id + '/', { method: 'POST', headers: { 'X-CSRFToken': csrf } }).catch(function () {});
         };
 
-        // ---- Letter divider toggle (default off) ----
-        var lettersEnabled = false;
+        // ---- Letter divider toggle (拼音默认关；英文排序模式初始开启) ----
+        var lettersEnabled = cfg.lettersEnabled === true;
 
         function updateLetterDividers() {
             var grid = document.getElementById('browse-grid-' + slug);
@@ -89,6 +89,22 @@
             lettersEnabled = !lettersEnabled;
             btn.classList.toggle('active', lettersEnabled);
             updateLetterDividers();
+        };
+
+        // 排序模式切换：mode = 'zh'（拼音）/ 'en'（英文首字母）
+        // 不同模式点击 → 重新加载切换排序（英文模式加载后自动显示字母分块）；
+        // 已是当前模式 → 当作字母分块开关
+        global.toggleSort = function (btn, mode) {
+            var curEn = window.location.search.indexOf('sort=en') !== -1;
+            if (mode === 'en' && !curEn) {
+                window.location.href = window.location.pathname + '?sort=en';
+                return;
+            }
+            if (mode === 'zh' && curEn) {
+                window.location.href = window.location.pathname;
+                return;
+            }
+            toggleLetters(btn);
         };
 
         // ---- Group filter ----

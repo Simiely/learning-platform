@@ -1,5 +1,6 @@
 """视图测试：浏览/卡片/练习 API 基本响应与数据完整性（含多分类）。"""
 import json
+import re
 
 from django.test import TestCase
 
@@ -52,6 +53,22 @@ class BrowseViewTests(TestCase):
         self.assertIn("browseApp", html)  # 独立 JS 初始化
         for a in ANIMALS[:10]:
             self.assertIn(a.name, html)
+
+    def test_browse_sort_en_orders_by_english(self):
+        # ?sort=en 按英文名排序，英文模式初始开启字母分块（lettersEnabled: true）
+        resp = self.client.get("/category/animals/?sort=en")
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        self.assertIn("lettersEnabled: true", html, "英文模式应初始开启字母分块")
+        self.assertIn("🀄", html, "英文模式应有返回拼音的 🀄 按钮")
+        m = re.search(r"items: (\[.*?\]),\s*lettersEnabled", html, re.S)
+        self.assertTrue(m, "应能提取 items_json")
+        items = json.loads(m.group(1))
+        names = [it["english_name"] for it in items]
+        self.assertEqual(
+            names, sorted(names, key=lambda s: (s or "").lower()),
+            "英文模式应按英文名排序",
+        )
 
     def test_cards_page_renders(self):
         resp = self.client.get("/category/animals/cards/")

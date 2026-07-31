@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="{% static 'css/zoom.css' %}?v=20260726b">
 <script src="{% static 'js/audio-player.js' %}"></script>
 <script src="{% static 'js/image-zoom.js' %}"></script>
-<script src="{% static 'js/browse.js' %}?v=20260731a"></script>
+<script src="{% static 'js/browse.js' %}?v=20260731c"></script>
 {% endblock %}
 
 {% block content %}
@@ -30,13 +30,19 @@
     {% for key, icon, text, count in group_info %}
     <button class="group-tab" data-group="{{ key }}" onclick="filterGroup(this, '{{ key }}')"><span class="gt-count">{{ icon }}</span><span class="gt-label">{{ text }} ({{ count }})</span></button>
     {% endfor %}
-    <button class="group-tab letter-toggle" id="letter-toggle" onclick="toggleLetters(this)" title="字母分隔">🔤</button>
+    {% if sort_en %}
+    <button class="group-tab letter-toggle active" id="letter-toggle" onclick="toggleLetters(this)" title="英文首字母分块">🔤</button>
+    <button class="group-tab letter-toggle" onclick="toggleSort(this, 'zh')" title="拼音排序">🀄</button>
+    {% else %}
+    <button class="group-tab letter-toggle" id="letter-toggle" onclick="toggleLetters(this)" title="拼音字母分块">🀄</button>
+    <button class="group-tab letter-toggle" onclick="toggleSort(this, 'en')" title="英文首字母排序">🔤</button>
+    {% endif %}
 </div>
 
 <div class="browse-grid" id="browse-grid-{{ category.slug }}">
     {% for item in items %}
-    {% ifchanged item.pinyin_initial %}
-    <div class="b-letter-divider" data-letter="{{ item.pinyin_initial }}"><span class="ld-badge">{{ item.pinyin_initial }}</span></div>
+    {% ifchanged item.pinyin_initial if sort_en else item.en_initial %}
+    <div class="b-letter-divider" data-letter="{% if sort_en %}{{ item.en_initial }}{% else %}{{ item.pinyin_initial }}{% endif %}"><span class="ld-badge">{% if sort_en %}{{ item.en_initial }}{% else %}{{ item.pinyin_initial }}{% endif %}</span></div>
     {% endifchanged %}
     <div class="b-tile" data-item-id="{{ item.id }}"
          data-group="{{ item.group }}"
@@ -61,6 +67,7 @@ browseApp({
     slug: '{{ category.slug }}',
     csrfToken: '{{ csrf_token }}',
     items: {{ items_json|safe }},
+    lettersEnabled: {% if sort_en %}true{% else %}false{% endif %},
     markViewedUrl: '{% url "mark_viewed" 0 %}'.replace(/0\/$/, ''),
     resetUrl: '{% url "reset_visited" "x" %}'.replace(/x\/$/, '')
 });
