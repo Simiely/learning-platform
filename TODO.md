@@ -62,8 +62,11 @@ image_position_ipad_landscape），再跑 `python manage.py sync_positions`（�
    须与 `apps/core/data/` 中该条目的 `img_file` / `audio_file` 基名一致。
 4. **批次结构**：第1~7批共 77 只已上线（详见 `ANIMALS.md`）。
 5. **依赖版本**：`requirements.txt` 已统一为本地运行环境版本（Django 6.0.7 等），部署照此安装。
-6. **图片压缩不需要**（2026-07-31 用户明确）：`media/images/` 原图直出（当前共 191MB，最大 13MB），
-   不压缩、不做懒加载，维持现状。此项**不再作为待办**。
+6. **图片大小控制（2026-07-31 更新）**：原"原图直出不压缩"已调整——**超过 4MB 的图片需压缩到 4MB 以内**（不降分辨率）。
+   已用 **mozjpeg cjpeg** 处理 15 张 >4MB 动物图（88.2MB → 51.4MB，quality 62~98，分辨率不变）。
+   后续新增/更换图片若 >4MB，同样用 mozjpeg 压到 4MB 内（工具：`node_modules/mozjpeg/vendor/cjpeg.exe`，
+   流程：Pillow 解码 → PPM 临时文件 → cjpeg 二分 quality → 原子替换；**Windows 下勿用 cjpeg 的 stdin/stdout**）。
+   压缩不影响 DB（文件名不变），无需重新 seed。
 7. **数据单一来源（多分类）**：`apps/core/data/` 目录是全部条目数据的唯一来源——
    `__init__.py`（CATEGORIES 汇总 + CardItem dataclass）+ 每分类一个数据文件（animals.py / fruits.py）。
    seed_data / seed_sync / sync_positions / check_data / gen_audio 全部从 CATEGORIES 读取。
