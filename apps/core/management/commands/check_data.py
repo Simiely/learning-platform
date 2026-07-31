@@ -21,22 +21,37 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         problems = []
 
-        # 1. DB items 媒体文件完整性
+        # 1. DB items 媒体文件完整性（按 data/ 中声明的文件校验；img_file 为空 = 用 emoji 代替图片，合法）
         media_root = str(settings.MEDIA_ROOT)
+        data_media = {
+            a.code: (a.img_file, a.audio_file)
+            for cat in CATEGORIES for a in cat.items
+        }
         for item in Item.objects.all().select_related("category"):
-            for field, sub in (
-                ("image", "images"),
-                ("audio", "audio"),
-                ("audio_en", "audio_en"),
-                ("audio_fact", "audio_fact"),
-            ):
-                f = getattr(item, field)
+            img_file, audio_file = data_media.get(item.code, ("", ""))
+            # 图片：仅当 data 声明了 img_file 时才要求 image 字段 + 文件存在
+            if img_file:
+                f = item.image
                 if not f:
-                    problems.append(f"[{item.code}] 缺少 {field} 字段")
-                    continue
-                path = f.path if hasattr(f, "path") else os.path.join(media_root, sub, os.path.basename(str(f)))
-                if not os.path.exists(path):
-                    problems.append(f"[{item.code}] 文件不存在: {path}")
+                    problems.append(f"[{item.code}] 缺少 image 字段（data 声明了 {img_file}）")
+                else:
+                    path = f.path if hasattr(f, "path") else os.path.join(media_root, "images", os.path.basename(str(f)))
+                    if not os.path.exists(path):
+                        problems.append(f"[{item.code}] 图片文件不存在: {path}")
+            # 音频：data 声明了 audio_file 时必须三个音频字段齐全
+            if audio_file:
+                for field, sub in (
+                    ("audio", "audio"),
+                    ("audio_en", "audio_en"),
+                    ("audio_fact", "audio_fact"),
+                ):
+                    f = getattr(item, field)
+                    if not f:
+                        problems.append(f"[{item.code}] 缺少 {field} 字段")
+                        continue
+                    path = f.path if hasattr(f, "path") else os.path.join(media_root, sub, os.path.basename(str(f)))
+                    if not os.path.exists(path):
+                        problems.append(f"[{item.code}] 文件不存在: {path}")
 
         # 2. data/ 与 DB 对齐（所有分类）
         db_codes = {i.code for i in Item.objects.all()}

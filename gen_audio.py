@@ -10,13 +10,18 @@
 网络：若所在环境需代理才能访问外网，先 export HTTPS_PROXY=http://<host>:<port>
 
 用法：
-  python gen_audio.py            # 生成 data.py ANIMALS 里的全部动物
-  python gen_audio.py ant ladybug # 仅生成指定基名（可选）
+  python gen_audio.py                          # 生成全部分类的音频（慎用，会重新生成已有音频）
+  python gen_audio.py --category fruits        # 只生成指定分类（推荐，加新分类时用）
+  python gen_audio.py --category fruits apple  # 只生成该分类下指定基名
+  python gen_audio.py ant ladybug              # 仅生成指定基名（不指定分类时全库搜索）
 
 注意：
-  - 数据来源统一为 apps/core/data.py（与 seed_data/seed_sync 共用单一数据源）。
+  - 数据来源统一为 apps/core/data/（与 seed_data/seed_sync 共用单一数据源）。
   - 图片/音频的"基名"就是 data.py 中 img_file/audio_file 的基名。
+  - ⚠️ 动物等已有分类的音频不要用无参数全量生成——会覆盖已有文件，
+    中途失败会留下 0 字节损坏文件。加新分类用 --category 只生成新增部分。
 """
+import argparse
 import asyncio
 import os
 import sys
@@ -28,22 +33,6 @@ from edge_tts import Communicate
 BASE = Path(__file__).resolve().parent / "media"
 ZH = "zh-CN-XiaoxiaoNeural"
 EN = "en-US-JennyNeural"
-
-# 从单一数据源读取全部分类条目（base, 中文名, 英文名, 科普文案）
-def _items():
-    import django
-
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-    django.setup()
-    from apps.core.data import CATEGORIES
-
-    return [
-        (Path(a.img_file).stem, a.name, a.english_name, a.fact)
-        for cat in CATEGORIES for a in cat.items
-    ]
-
-
-ANIMALS = _items()
 
 
 async def gen_one(text, voice, out_path):
@@ -62,13 +51,43 @@ async def gen_one(text, voice, out_path):
 
 
 async def main():
-    only = set(sys.argv[1:]) if len(sys.argv) > 1 else None
-    items = [a for a in ANIMALS if only is None or a[0] in only]
-    if only is not None:
-        missing = only - {a[0] for a in ANIMALS}
-        if missing:
-            print(f"WARNING: base not in ANIMALS list: {sorted(missing)}")
+    # 解析参数：--category <slug> 可选，其余位置参数按基名过滤
+    parser = argparse.ArgumentParser(description="Generate animal/card audio via edge-tts")
+    parser.add_argument("--category", metavar="SLUG", help="only generate this category (e.g. fruits)")
+    parser.add_argument("bases", nargs="*", help="optional base-name filter")
+    args = parser.parse_args()
 
+    only_bases = set(args.bases) if args.bases else None
+
+    # 按分类过滤
+    import django
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    django.setup()
+    from apps.core.data import CATEGORIES
+
+    if args.category:
+        cats = [c for c in CATEGORIES if c.slug == args.category]
+        if not cats:
+            print(f"ERROR: unknown category '{args.category}'. Available: {[c.slug for c in CATEGORIES]}")
+            sys.exit(1)
+        items = [
+            (Path(a.audio_file or a.img_file).stem, a.name, a.english_name, a.fact)
+            for a in cats[0].items
+        ]
+    else:
+        items = [
+            (Path(a.audio_file or a.img_file).stem, a.name, a.english_name, a.fact)
+            for cat in CATEGORIES for a in cat.items
+        ]
+
+    if only_bases is not None:
+        items = [a for a in items if a[0] in only_bases]
+        missing = only_bases - {a[0] for a in items}
+        if missing:
+            print(f"WARNING: base not found: {sorted(missing)}")
+
+    print(f"Generating {len(items)} items, 3 files each...")
     total = ok = 0
     for base, zh_name, en_name, fact in items:
         tasks = [

@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .animals import ANIMALS, ANIMAL_GROUPS
+from .fruits import FRUIT_GROUPS, ITEMS as FRUITS
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,15 @@ CATEGORIES: list[CategoryData] = [
         sort_order=1,
         groups=ANIMAL_GROUPS,
         items=ANIMALS,
+    ),
+    CategoryData(
+        slug="fruits",
+        name="果蔬",
+        icon="🍎",
+        description="认识常见的水果和蔬菜",
+        sort_order=2,
+        groups=FRUIT_GROUPS,
+        items=FRUITS,
     ),
 ]
 

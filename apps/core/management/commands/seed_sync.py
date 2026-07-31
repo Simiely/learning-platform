@@ -79,13 +79,15 @@ class Command(BaseCommand):
                     category=cat, code=a.code, defaults=defaults
                 )
 
-                # Only write media files for NEW items to avoid unnecessary overwrites
-                if is_new and a.img_file:
-                    src = os.path.join(MEDIA_ROOT, "images", a.img_file)
-                    if os.path.exists(src):
-                        with open(src, "rb") as f:
-                            item.image = _write_media_file(os.path.join("images", a.img_file), f.read())
-                        item.save(update_fields=["image"])
+                # 写媒体文件：新建条目，或已有条目缺音频时（如先建条目后补音频/图片）
+                # 动物等已有完整媒体的条目不会被覆盖
+                if is_new or not item.audio:
+                    if a.img_file:
+                        src = os.path.join(MEDIA_ROOT, "images", a.img_file)
+                        if os.path.exists(src):
+                            with open(src, "rb") as f:
+                                item.image = _write_media_file(os.path.join("images", a.img_file), f.read())
+                            item.save(update_fields=["image"])
 
                     if a.audio_file:
                         for sub, field in (
