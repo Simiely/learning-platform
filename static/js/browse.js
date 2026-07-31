@@ -91,6 +91,21 @@
             updateLetterDividers();
         };
 
+        // 排序模式切换：mode = 'zh'（拼音）/ 'en'（英文首字母）
+        // 当前模式再次点击 = 字母分隔开关；不同模式点击 = 重新加载切换排序
+        global.toggleSort = function (btn, mode) {
+            var curEn = window.location.search.indexOf('sort=en') !== -1;
+            if (mode === 'en' && !curEn) {
+                window.location.href = window.location.pathname + '?sort=en';
+                return;
+            }
+            if (mode === 'zh' && curEn) {
+                window.location.href = window.location.pathname;
+                return;
+            }
+            toggleLetters(btn);
+        };
+
         // ---- Group filter ----
         global.filterGroup = function (btn, group) {
             // Toggle active style (selected button shows text)
