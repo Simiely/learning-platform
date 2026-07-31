@@ -29,7 +29,12 @@ learning-platform/
 │   ├── data/                   # ⭐ 全部分类数据单一来源
 │   │   ├── __init__.py         # CardItem dataclass + CATEGORIES 汇总（分类级配置）
 │   │   ├── animals.py          # 动物分类（Animal，77 只，焦点已手工校准）
-│   │   └── fruits.py           # 果蔬分类（Fruit，23 种，图片用 emoji 代替）
+│   │   ├── fruits.py           # 果蔬分类（23 种，emoji 代替图片）
+│   │   ├── vehicles.py         # 交通工具（20 种，emoji）
+│   │   ├── dinosaurs.py        # 恐龙（16 种，emoji）
+│   │   ├── space.py            # 太空（15 种，emoji）
+│   │   ├── plants.py           # 花卉植物（16 种，emoji）
+│   │   └── jobs.py             # 职业（16 种，emoji）
 │   ├── models.py               # Category(含 groups 配置), Item, LearningProgress, QuizAttempt
 │   ├── views.py                # 视图 + API（复用 services）
 │   ├── services.py             # 公共业务逻辑（拼音排序/首字母/进度记录）

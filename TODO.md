@@ -41,8 +41,9 @@ image_position_ipad_landscape），再跑 `python manage.py sync_positions`（�
 
 ### D. 后续分类/条目批次
 - ✅ **动物第1~7批共 77 只已全部上线**（详见 `ANIMALS.md`）。
-- ✅ **果蔬分类 23 种已上线**（2026-07-31，图片暂用 emoji 代替，数据在 `apps/core/data/fruits.py`）。
-- ⏳ **后续分类**：交通工具 → 恐龙 → 太空 → 花卉植物 → 职业（数据/音频流程同果蔬，图片先用 emoji）。
+- ✅ **果蔬 23 种**（2026-07-31，`data/fruits.py`，emoji 图片）
+- ✅ **交通工具 20 / 恐龙 16 / 太空 15 / 花卉植物 16 / 职业 16**（2026-07-31，`data/vehicles|dinosaurs|space|plants|jobs.py`，emoji 图片）
+- ⏳ **补真实图片**：以上 6 个新分类后续逐个补真实照片（流程：Pexels 搜图 → 用户确认 → 填 img_file → seed_sync）
 - 音频生成工具 `gen_audio.py`（仓库根目录）从 `apps/core/data/` 读取，**必须带 `--category <slug>`** 只生成新增分类，勿全量跑（会覆盖已有音频，曾致 cat/whale 损坏）。
 - 图片下载工具 `download_unsplash.py`（仓库根目录）用于获取候选参考图。
 
