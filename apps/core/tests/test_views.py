@@ -176,3 +176,55 @@ class MultiCategoryViewTests(TestCase):
             self.assertIn(cat.name, html, f"首页缺分类 {cat.name}")
             # annotate 的条目数正确渲染（模板 cat.item_count 应为 int）
             self.assertIn(f"{len(cat.items)} 张", html, f"[{cat.slug}] 首页条目数不对")
+
+
+class QuizNoRepeatTests(TestCase):
+    """一轮练习（10 题）内不重复：正确答案互不重复，且正确答案不会混入其他题选项。"""
+
+    QUIZ_N = 10
+
+    def setUp(self):
+        # 20 条（模拟条目较少的新分类场景，10 题 × 4 选项 > 条目数的物理限制下仍须保证答案不重复）
+        self.cat = Category.objects.create(
+            name="动物", slug="animals", icon="🐾", sort_order=1,
+            groups={"farm": "🏠 家里和农场", "wild": "🌍 野生动物"},
+        )
+        for idx, a in enumerate(ANIMALS[:20]):
+            Item.objects.create(
+                category=self.cat, code=a.code, name=a.name,
+                english_name=a.english_name, emoji=a.emoji, fact=a.fact,
+                group="wild", sort_order=idx, image_position_checked=True,
+            )
+
+    def _fetch_questions(self, n):
+        questions = []
+        for _ in range(n):
+            resp = self.client.get("/api/quiz/animals/question/")
+            self.assertEqual(resp.status_code, 200)
+            questions.append(json.loads(resp.content))
+        return questions
+
+    def test_correct_answers_no_repeat(self):
+        # 核心：10 道题的正确答案互不重复（不重复考同一张卡）
+        questions = self._fetch_questions(self.QUIZ_N)
+        correct_ids = [q["correct_id"] for q in questions]
+        self.assertEqual(
+            len(correct_ids), len(set(correct_ids)),
+            f"一轮 {self.QUIZ_N} 题正确答案不应重复",
+        )
+
+    def test_options_are_unique_per_question(self):
+        for i, q in enumerate(self._fetch_questions(self.QUIZ_N)):
+            opts = [o["id"] for o in q["options"]]
+            self.assertEqual(len(opts), 4, f"第 {i+1} 题应有 4 个选项")
+            self.assertEqual(len(set(opts)), 4, f"第 {i+1} 题选项不应重复")
+
+    def test_past_correct_not_reused_later(self):
+        # 已出过的正确答案，不会再出现在后续题目的选项里（时间正向去重）
+        questions = self._fetch_questions(self.QUIZ_N)
+        seen_correct = set()
+        for i, q in enumerate(questions):
+            opts = [o["id"] for o in q["options"]]
+            overlap = seen_correct & set(opts)
+            self.assertEqual(overlap, set(), f"第 {i+1} 题选项含已出过的答案: {overlap}")
+            seen_correct.add(q["correct_id"])

@@ -146,23 +146,33 @@ def quiz_question_api(request: Any, slug: str) -> JsonResponse:
         request.session[session_key] = []
         request.session.modified = True
 
-    # Exclude already-used (current session) and previous session IDs
+    # 正确答案：排除本轮已出过的（used_ids）+ 上轮出过的（prev_ids）
+    # → 一轮 10 题正确答案互不重复（各分类条目均 ≥ 15 > 10）
     excluded = used_ids | prev_ids
     available = [i for i in items if i.id not in excluded]
-    # If not enough unique items left, just exclude current session duplicates
     if len(available) < 1:
+        # 上轮排除耗尽：退回只排除本轮已出过的
         available = [i for i in items if i.id not in used_ids]
     if len(available) < 1:
-        # All items used at least once — reset and start fresh
+        # 全部条目本轮都用过——重置重新开始
         used_ids = set()
         available = list(items)
 
     correct = random.choice(available)
-    # Distractors: prefer items not yet used this session or last session
-    others = [i for i in items if i.id != correct.id]
-    # Shuffle to avoid same distractors every time
+
+    # 干扰项：排除"已作正确答案的"（本轮 used + 上轮 prev）+ 本题 correct，
+    # 保证正确答案不会混入其他题的选项里（同一张卡不会既当答案又当干扰项）。
+    # 剩余池子无放回取 3 个；条目不足（小分类）时允许干扰项跨题复用，
+    # 但始终不与任何正确答案重复。
+    dist_excluded = set(used_ids) | prev_ids | {correct.id}
+    others = [i for i in items if i.id not in dist_excluded]
     random.shuffle(others)
     distractors = others[:QUIZ_N_DISTRACTORS]
+    if len(distractors) < QUIZ_N_DISTRACTORS:
+        used_dist = {d.id for d in distractors}
+        rest = [i for i in items if i.id != correct.id and i.id not in used_dist]
+        random.shuffle(rest)
+        distractors += rest[:QUIZ_N_DISTRACTORS - len(distractors)]
 
     options = [correct] + distractors
     random.shuffle(options)
