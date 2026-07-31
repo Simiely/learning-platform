@@ -4,21 +4,31 @@ Usage:
     python download_unsplash.py <animal_name>
 
 One API call, max 30 results, download only 20 thumbnails.
+
+API Key 通过环境变量 UNSPLASH_ACCESS_KEY 提供（不入库）。
+代理地址通过 HTTPS_PROXY / HTTP_PROXY 提供；未设置时直连。
 """
 import json, os, ssl, sys, time, urllib.request, urllib.parse
 
-UNSPLASH_ACCESS_KEY = "uoHrNGA32at1Jz-TzFCNEf9pubYg9ZR2EM8UenvE5Os"
+UNSPLASH_ACCESS_KEY = os.environ.get("UNSPLASH_ACCESS_KEY", "")
+
+_PROXY = os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY") or ""
+if _PROXY:
+    proxy_handler = urllib.request.ProxyHandler({
+        'http': _PROXY,
+        'https': _PROXY,
+    })
+else:
+    proxy_handler = urllib.request.ProxyHandler({})
+
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
-
-proxy_handler = urllib.request.ProxyHandler({
-    'http': 'http://127.0.0.1:7890',
-    'https': 'http://127.0.0.1:7890'
-})
 opener = urllib.request.build_opener(proxy_handler, urllib.request.HTTPSHandler(context=ctx))
 
 def search(query, per_page=30, page=1):
+    if not UNSPLASH_ACCESS_KEY:
+        raise RuntimeError("UNSPLASH_ACCESS_KEY 环境变量未设置")
     encoded = urllib.parse.quote(query)
     url = f"https://api.unsplash.com/search/photos?query={encoded}&per_page={per_page}&page={page}"
     req = urllib.request.Request(url, headers={

@@ -1,18 +1,29 @@
-"""Search Pexels API and download thumbnails for a given animal."""
+"""Search Pexels API and download thumbnails for a given animal.
+
+API Key 通过环境变量 PEXELS_KEY 提供（不入库）。
+代理地址通过 HTTPS_PROXY / HTTP_PROXY 提供；未设置时直连。
+"""
 import json, os, ssl, sys, time, urllib.request, urllib.parse
 
-PEXELS_KEY = "vGhCTklBbSleAsR3x0dmqp2EDZfNeFGYsvez04Mru17AauEX0UBcNL0G"
+PEXELS_KEY = os.environ.get("PEXELS_KEY", "")
+
+_PROXY = os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY") or ""
+if _PROXY:
+    proxy_handler = urllib.request.ProxyHandler({
+        'http': _PROXY,
+        'https': _PROXY,
+    })
+else:
+    proxy_handler = urllib.request.ProxyHandler({})
+
 ssl_ctx = ssl.create_default_context()
 ssl_ctx.check_hostname = False
 ssl_ctx.verify_mode = ssl.CERT_NONE
-
-proxy_handler = urllib.request.ProxyHandler({
-    'http': 'http://127.0.0.1:7890',
-    'https': 'http://127.0.0.1:7890'
-})
 opener = urllib.request.build_opener(proxy_handler, urllib.request.HTTPSHandler(context=ssl_ctx))
 
 def search(query, per_page=80):
+    if not PEXELS_KEY:
+        raise RuntimeError("PEXELS_KEY 环境变量未设置")
     encoded = urllib.parse.quote(query)
     url = f"https://api.pexels.com/v1/search?query={encoded}&per_page={per_page}&page=1"
     req = urllib.request.Request(url, headers={
