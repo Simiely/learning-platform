@@ -26,11 +26,11 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* iPhone 窄屏：按钮默认只显示 emoji，点击后展开文字 */
+/* iPhone 窄屏：按钮默认只显示 emoji，选中按钮才展开文字 */
 @media (max-width: 768px) {
     .group-tab { padding: 8px 11px; }
     .group-tab .gt-label { display: none; }
-    .group-tabs.expanded .gt-label { display: inline; }
+    .group-tab.active .gt-label { display: inline; }
 }
 
 .group-tab:active {

@@ -116,13 +116,7 @@
 
     // ---- 分组过滤 ----
     window.filterGroup = function(btn, group) {
-        // iPhone 上点击后展开按钮文字
-        var tabs = document.getElementById('group-tabs-' + slug);
-        if (tabs && !tabs.classList.contains('expanded')) {
-            tabs.classList.add('expanded');
-        }
-
-        // 切换 active 样式
+        // 切换 active 样式（选中按钮会显示文字）
         document.querySelectorAll('#group-tabs-' + slug + ' .group-tab').forEach(function(t) {
             t.classList.remove('active');
         });
