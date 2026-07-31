@@ -3,7 +3,7 @@
 {% block title %}{{ category.name }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/browse.css' %}?v=20260728a">
+<link rel="stylesheet" href="{% static 'css/browse.css' %}?v=20260731a">
 <link rel="stylesheet" href="{% static 'css/popup.css' %}?v=20260726b">
 <link rel="stylesheet" href="{% static 'css/zoom.css' %}?v=20260726b">
 <script src="{% static 'js/audio-player.js' %}"></script>
@@ -34,6 +34,9 @@
 
 <div class="browse-grid" id="browse-grid-{{ category.slug }}">
     {% for item in items %}
+    {% ifchanged item.pinyin_initial %}
+    <div class="b-letter-divider" data-letter="{{ item.pinyin_initial }}"><span class="ld-badge">{{ item.pinyin_initial }}</span></div>
+    {% endifchanged %}
     <div class="b-tile" data-item-id="{{ item.id }}"
          data-group="{{ item.group }}"
          data-item-name="{{ item.name|escapejs }}"
@@ -120,12 +123,29 @@
         btn.classList.add('active');
 
         // 显示/隐藏瓷砖
-        document.querySelectorAll('#browse-grid-' + slug + ' .b-tile').forEach(function(tile) {
+        var grid = document.getElementById('browse-grid-' + slug);
+        grid.querySelectorAll('.b-tile').forEach(function(tile) {
             if (group === 'all' || tile.getAttribute('data-group') === group) {
                 tile.style.display = '';
             } else {
                 tile.style.display = 'none';
             }
+        });
+
+        // 字母分隔块：只有当它后面还有可见的瓷砖时才显示
+        var visibleLetters = new Set();
+        grid.querySelectorAll('.b-tile').forEach(function(tile) {
+            if (tile.style.display !== 'none') {
+                // 找到它前面最近的一个字母块
+                var prev = tile.previousElementSibling;
+                while (prev && !prev.classList.contains('b-letter-divider')) {
+                    prev = prev.previousElementSibling;
+                }
+                if (prev) visibleLetters.add(prev.getAttribute('data-letter'));
+            }
+        });
+        grid.querySelectorAll('.b-letter-divider').forEach(function(dv) {
+            dv.style.display = visibleLetters.has(dv.getAttribute('data-letter')) ? '' : 'none';
         });
     };
 })();

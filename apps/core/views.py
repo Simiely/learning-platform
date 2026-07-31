@@ -33,6 +33,12 @@ def category_browse_view(request: Any, slug: str) -> Any:
     # Attach colour based on emoji for each item
     for item in items:
         item.color = _emoji_color(item.emoji or item.name)
+        # 拼音首字母（用于字母分组标题）
+        try:
+            initial = pinyin(item.name, style=Style.FIRST_LETTER)[0][0][0].upper()
+            item.pinyin_initial = initial if initial.isalpha() else "#"
+        except Exception:
+            item.pinyin_initial = "#"
 
     items_json = json.dumps([it.to_dict() for it in items])
 
