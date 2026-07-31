@@ -101,7 +101,9 @@
         // ---- Group filter ----
         global.filterGroup = function (btn, group) {
             // Toggle active style (selected button shows text)
+            // 注意：保留 letter-toggle（🀄/🔤 区块按钮）的选中态，分组切换不取消区块模式
             document.querySelectorAll('#group-tabs-' + slug + ' .group-tab').forEach(function (t) {
+                if (t.classList.contains('letter-toggle')) return;
                 t.classList.remove('active');
             });
             btn.classList.add('active');
