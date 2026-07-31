@@ -1077,6 +1077,16 @@ CSS 文件通过 `?v=YYYYMMDDx` 版本号绕过 Safari 强缓存。修改 CSS �
 - 工作区副本（D:\workbuddy\...）必须与真实仓库（C:\Users\2504\Documents\learning-platform）同步
 - 提交前跑：`manage.py check` / `manage.py test apps.core` / `manage.py check_data`（30+ 测试兜底）
 
+### 8. 大图压缩（mozjpeg，>4MB → 4MB 内）
+- 规则（2026-07-31 更新）：图片超过 4MB 必须压缩到 4MB 以内，**不降分辨率**
+- 工具：npm 装 `mozjpeg`（imagemin 包）→ `node_modules/mozjpeg/vendor/cjpeg.exe`（mozjpeg 3.1）
+- **⚠️ Windows 坑**：cjpeg 的 `-outfile -`（stdout）模式不可用——stdout 返回空导致输出 0 字节文件，
+  还会残留一个名为 `-` 的垃圾文件（用 `git rm --cached -- "-"` + `rm -- "-"` 清理）
+- 正解流程：Pillow 解码 → `tempfile` PPM 临时文件 → `cjpeg -quality Q -optimize -outfile tmp.jpg tmp.ppm`
+  → 二分 quality(40-98) 找 <4MB 的最高质量 → 写临时文件后 `os.replace` 原子替换原图
+- 实测：15 张 88.2MB → 51.4MB，全部 3.4~3.8MB，quality 62~98（照片肉眼几乎无差别），分辨率 100% 不变
+- 压缩不改变文件名 → DB / check_data 无需任何处理
+
 
 ### 迁移步骤
 

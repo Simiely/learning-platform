@@ -121,6 +121,8 @@ cp new-animals/{animal}.jpg media/images/{animal}.jpg
 
 - **原图格式直出**，不转换格式、不缩放裁剪（jpg / png / webp 等均可）
 - **长边 ≥ 3000px**
+- **⚠️ 文件大小 ≤ 4MB**：超过 4MB 需用 mozjpeg 压到 4MB 以内（**不降分辨率**，流程见
+  `TODO.md` 决策 6：Pillow 解码 → PPM 临时文件 → `cjpeg -quality Q -optimize` 二分 → 原子替换）
 - 图片文件名与 `apps/core/data/` 中 `img_file` 字段保持一致
 
 #### 步骤 3：生成音频（3 种语言）
