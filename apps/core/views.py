@@ -94,11 +94,15 @@ def mark_viewed(request: Any, item_id: int) -> JsonResponse:
     mark_item_viewed(request.user, item)
     return JsonResponse({"status": "ok"})
 
+# ---- Quiz 常量 ----
+QUIZ_MIN_ITEMS = 4      # 至少需要多少个条目才能出题
+QUIZ_N_DISTRACTORS = 3  # 每个题目干扰项数量（共 4 个选项）
+
 def category_quiz_view(request: Any, slug: str) -> Any:
     category = get_object_or_404(Category, slug=slug)
     items = list(category.items.all())
 
-    if len(items) < 4:
+    if len(items) < QUIZ_MIN_ITEMS:
         return render(
             request,
             "category_quiz.html",
@@ -126,7 +130,7 @@ def quiz_question_api(request: Any, slug: str) -> JsonResponse:
     category = get_object_or_404(Category, slug=slug)
     items = list(category.items.all())
 
-    if len(items) < 4:
+    if len(items) < QUIZ_MIN_ITEMS:
         return JsonResponse({"error": "Not enough items"}, status=400)
 
     quiz_type = request.GET.get("type", "image_to_name")
@@ -150,7 +154,7 @@ def quiz_question_api(request: Any, slug: str) -> JsonResponse:
     others = [i for i in items if i.id != correct.id]
     # Shuffle to avoid same distractors every time
     random.shuffle(others)
-    distractors = others[:3]
+    distractors = others[:QUIZ_N_DISTRACTORS]
 
     options = [correct] + distractors
     random.shuffle(options)

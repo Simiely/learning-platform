@@ -36,6 +36,11 @@ jobs:
           DJANGO_DEBUG: "true"
         run: python manage.py check
 
+      - name: Run tests
+        env:
+          DJANGO_DEBUG: "true"
+        run: python manage.py test apps.core -v 1
+
   build:
     needs: test
     runs-on: ubuntu-latest

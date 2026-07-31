@@ -9,16 +9,16 @@
 
 set -eu
 
-echo "==> [1/6] Collecting static files"
+echo "==> [1/8] Collecting static files"
 python manage.py collectstatic --noinput
 
-echo "==> [2/6] Running database migrations"
+echo "==> [2/8] Running database migrations"
 # Host-mounted db/ may have wrong owner for the non-root 'app' user.
 # Fix permissions before any DB write to avoid "readonly database" error.
 chmod -R a+w /app/db/ 2>/dev/null || true
 python manage.py migrate --noinput
 
-echo "==> [3/7] Syncing media from bundled image copy"
+echo "==> [3/8] Syncing media from bundled image copy"
 # Volume mounts hide bundled media; keep a bundled copy so every deploy
 # can sync updated images/audio without needing network download.
 if [ -d /app/media-bundled ] && [ -n "$(ls -A /app/media-bundled)" ]; then
@@ -28,10 +28,13 @@ else
     echo "    no bundled media found, using volume content as-is."
 fi
 
-echo "==> [4/6] Syncing seed data (creates new items, updates changed, never deletes)"
+echo "==> [4/8] Syncing seed data (creates new items, updates changed, never deletes)"
 python manage.py seed_sync
 
-echo "==> [5/7] Syncing image positions from seed_data"
+echo "==> [5/8] Verifying data consistency (media files + data.py alignment)"
+python manage.py check_data
+
+echo "==> [6/8] Syncing image positions from seed_data"
 # Non-fatal: sync_positions failure should NOT prevent gunicorn from starting.
 # Wrap in set +e / set -e so we always reach gunicorn even if this step fails.
 set +e
@@ -42,7 +45,7 @@ if [ $SYNC_EXIT -ne 0 ]; then
     echo "    WARNING: sync_positions failed (exit $SYNC_EXIT), container will still start."
 fi
 
-echo "==> [6/7] Ensuring default superuser"
+echo "==> [7/8] Ensuring default superuser"
 python manage.py shell -c "
 import os
 from django.contrib.auth.models import User
@@ -56,7 +59,7 @@ else:
     print('    superuser already present or not configured, skipping.')
 "
 
-echo "==> [7/7] Starting gunicorn"
+echo "==> [8/8] Starting gunicorn"
 exec gunicorn config.wsgi:application \
   --bind 0.0.0.0:8000 \
   --workers 2 \
