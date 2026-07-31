@@ -25,11 +25,11 @@
 
 <!-- 分组 Tabs -->
 <div class="group-tabs" id="group-tabs-{{ category.slug }}">
-    <button class="group-tab active" data-group="all" onclick="filterGroup(this, 'all')">全部 ({{ total }})</button>
-    <button class="group-tab" data-group="farm" onclick="filterGroup(this, 'farm')">🏠 家里和农场 ({{ group_counts.farm }})</button>
-    <button class="group-tab" data-group="wild" onclick="filterGroup(this, 'wild')">🌍 野生动物 ({{ group_counts.wild }})</button>
-    <button class="group-tab" data-group="ocean" onclick="filterGroup(this, 'ocean')">🌊 海洋动物 ({{ group_counts.ocean }})</button>
-    <button class="group-tab" data-group="reptile" onclick="filterGroup(this, 'reptile')">🦎 爬虫和昆虫 ({{ group_counts.reptile }})</button>
+    <button class="group-tab active" data-group="all" onclick="filterGroup(this, 'all')">✨<span class="gt-label">全部 ({{ total }})</span></button>
+    <button class="group-tab" data-group="farm" onclick="filterGroup(this, 'farm')">🏠<span class="gt-label">家里和农场 ({{ group_counts.farm }})</span></button>
+    <button class="group-tab" data-group="wild" onclick="filterGroup(this, 'wild')">🌍<span class="gt-label">野生动物 ({{ group_counts.wild }})</span></button>
+    <button class="group-tab" data-group="ocean" onclick="filterGroup(this, 'ocean')">🌊<span class="gt-label">海洋动物 ({{ group_counts.ocean }})</span></button>
+    <button class="group-tab" data-group="reptile" onclick="filterGroup(this, 'reptile')">🦎<span class="gt-label">爬虫和昆虫 ({{ group_counts.reptile }})</span></button>
 </div>
 
 <div class="browse-grid" id="browse-grid-{{ category.slug }}">
@@ -116,6 +116,12 @@
 
     // ---- 分组过滤 ----
     window.filterGroup = function(btn, group) {
+        // iPhone 上点击后展开按钮文字
+        var tabs = document.getElementById('group-tabs-' + slug);
+        if (tabs && !tabs.classList.contains('expanded')) {
+            tabs.classList.add('expanded');
+        }
+
         // 切换 active 样式
         document.querySelectorAll('#group-tabs-' + slug + ' .group-tab').forEach(function(t) {
             t.classList.remove('active');
