@@ -62,6 +62,10 @@ python manage.py runserver 0.0.0.0:8000
 ### 📋 想知道接下来做什么？
 看待办清单 → **[`TODO.md`](./TODO.md)**
 
+### 🤖 AI / 快速上手？
+看项目规则 → **[`AGENTS.md`](./AGENTS.md)**（技术栈 + 8 条关键坑 + 约定 + 常用命令）
+版本变更记录 → **[`CHANGELOG.md`](./CHANGELOG.md)**
+
 ---
 
 ## License
